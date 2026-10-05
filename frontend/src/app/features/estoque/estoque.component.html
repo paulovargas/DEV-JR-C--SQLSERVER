@@ -1,0 +1,213 @@
+<section class="page">
+  <header class="page-heading">
+    <p class="eyebrow">Exercício 02</p>
+    <h1>Movimentação de estoque</h1>
+    <p>Registre entradas e saídas, acompanhe o saldo atualizado e consulte o histórico da execução.</p>
+  </header>
+
+  <div class="notice notice--info">
+    Os saldos ficam em memória durante esta execução da API e voltam ao JSON inicial quando ela reinicia.
+  </div>
+
+  @if (erro()) {
+    <div class="notice notice--error" role="alert">{{ erro() }}</div>
+  }
+
+  @if (sucesso()) {
+    <div class="notice notice--success" role="status">{{ sucesso() }}</div>
+  }
+
+  <div class="layout-grid">
+    <article class="panel">
+      <header class="panel__header">
+        <div>
+          <h2>Nova movimentação</h2>
+          <p>Informe o produto e os dados da operação.</p>
+        </div>
+      </header>
+
+      <form class="panel__body form-stack" [formGroup]="formulario" (ngSubmit)="registrar()">
+        <div class="field">
+          <label for="produto">Produto</label>
+          <select
+            id="produto"
+            formControlName="codigoProduto"
+            (change)="produtoAlterado($event)">
+            @for (produto of produtos(); track produto.codigoProduto) {
+              <option [value]="produto.codigoProduto">
+                {{ produto.codigoProduto }} — {{ produto.descricaoProduto }}
+              </option>
+            }
+          </select>
+          @if (produtoSelecionado(); as produto) {
+            <p class="field__hint">Saldo disponível: <strong>{{ produto.estoque }} unidades</strong></p>
+          }
+        </div>
+
+        <fieldset class="field type-field">
+          <legend>Tipo da movimentação</legend>
+          <div class="type-selector">
+            <label [class.is-selected]="formulario.controls.tipo.value === 'entrada'">
+              <input type="radio" formControlName="tipo" value="entrada">
+              <span class="type-selector__sign">+</span>
+              <span>
+                <strong>Entrada</strong>
+                <small>Adicionar ao saldo</small>
+              </span>
+            </label>
+            <label [class.is-selected]="formulario.controls.tipo.value === 'saida'">
+              <input type="radio" formControlName="tipo" value="saida">
+              <span class="type-selector__sign type-selector__sign--out">−</span>
+              <span>
+                <strong>Saída</strong>
+                <small>Retirar do saldo</small>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="quantidade">Quantidade</label>
+          <input
+            id="quantidade"
+            type="number"
+            min="1"
+            step="1"
+            inputmode="numeric"
+            formControlName="quantidade">
+          @if (formulario.controls.quantidade.invalid && formulario.controls.quantidade.touched) {
+            <p class="field__error">Informe uma quantidade inteira maior que zero.</p>
+          }
+        </div>
+
+        <div class="field">
+          <label for="descricao">Descrição</label>
+          <textarea
+            id="descricao"
+            maxlength="120"
+            placeholder="Ex.: venda do pedido 123"
+            formControlName="descricao"></textarea>
+          <p class="field__hint">{{ formulario.controls.descricao.value.length }}/120 caracteres</p>
+          @if (formulario.controls.descricao.invalid && formulario.controls.descricao.touched) {
+            <p class="field__error">Informe uma descrição para identificar a movimentação.</p>
+          }
+        </div>
+
+        <button class="button button--block" type="submit" [disabled]="salvando() || carregando()">
+          @if (salvando()) {
+            <span class="button__spinner" aria-hidden="true"></span>
+            Registrando…
+          } @else {
+            Registrar movimentação
+          }
+        </button>
+      </form>
+    </article>
+
+    <article class="panel">
+      <header class="panel__header">
+        <div>
+          <h2>Posição atual</h2>
+          <p>{{ produtos().length }} produtos cadastrados no depósito.</p>
+        </div>
+        <button
+          class="refresh-button"
+          type="button"
+          title="Atualizar dados"
+          aria-label="Atualizar produtos e movimentações"
+          [disabled]="carregando()"
+          (click)="carregarDados()">↻</button>
+      </header>
+
+      @if (carregando()) {
+        <div class="loading-block">Consultando o estoque…</div>
+      } @else if (produtos().length > 0) {
+        <div class="table-shell">
+          <table class="data-table product-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Produto</th>
+                <th class="text-right">Saldo</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (produto of produtos(); track produto.codigoProduto) {
+                <tr [class.is-selected]="produto.codigoProduto === codigoSelecionado()">
+                  <td><span class="product-code">{{ produto.codigoProduto }}</span></td>
+                  <td class="text-strong">{{ produto.descricaoProduto }}</td>
+                  <td class="text-right"><strong>{{ produto.estoque }}</strong> un.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <div class="empty-state__icon" aria-hidden="true">0</div>
+          <strong>Nenhum produto encontrado</strong>
+          <p>Confira se a API está carregando o arquivo de estoque inicial.</p>
+        </div>
+      }
+    </article>
+  </div>
+
+  <article class="panel">
+    <header class="panel__header">
+      <div>
+        <h2>Histórico de movimentações</h2>
+        <p>Registros mais recentes aparecem primeiro.</p>
+      </div>
+      @if (movimentacoes().length > 0) {
+        <span class="history-count">{{ movimentacoes().length }}</span>
+      }
+    </header>
+
+    @if (movimentacoes().length > 0) {
+      <div class="table-shell">
+        <table class="data-table history-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Produto</th>
+              <th>Tipo</th>
+              <th class="text-right">Quantidade</th>
+              <th class="text-right">Saldo</th>
+              <th>Descrição</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (movimentacao of movimentacoes(); track movimentacao.id) {
+              <tr>
+                <td class="text-muted movement-date">
+                  {{ movimentacao.realizadaEm | date:'dd/MM/yyyy, HH:mm' }}
+                </td>
+                <td>
+                  <strong>{{ movimentacao.descricaoProduto }}</strong>
+                  <small>#{{ movimentacao.codigoProduto }}</small>
+                </td>
+                <td>
+                  <span class="badge" [class.badge--entrada]="movimentacao.tipo === 'entrada'"
+                    [class.badge--saida]="movimentacao.tipo === 'saida'">
+                    {{ movimentacao.tipo }}
+                  </span>
+                </td>
+                <td class="text-right text-strong">{{ movimentacao.quantidade }}</td>
+                <td class="text-right balance-change">
+                  {{ movimentacao.estoqueAnterior }} <span>→</span> <strong>{{ movimentacao.estoqueFinal }}</strong>
+                </td>
+                <td>{{ movimentacao.descricao }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty-state">
+        <div class="empty-state__icon" aria-hidden="true">↕</div>
+        <strong>Nenhuma movimentação registrada</strong>
+        <p>O histórico será preenchido assim que uma entrada ou saída for realizada.</p>
+      </div>
+    }
+  </article>
+</section>

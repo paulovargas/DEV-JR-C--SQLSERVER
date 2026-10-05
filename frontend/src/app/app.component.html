@@ -1,0 +1,52 @@
+<div class="app-shell">
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" routerLink="/estoque" aria-label="Ir para o início">
+        <span class="brand__mark" aria-hidden="true">DT</span>
+        <span>
+          <strong>Desafio Target</strong>
+          <small>ASP.NET Core + Angular</small>
+        </span>
+      </a>
+
+      <div class="api-status" title="As telas usam a API local">
+        <span class="api-status__dot" aria-hidden="true"></span>
+        Integração REST
+      </div>
+    </div>
+
+    <nav class="navigation" aria-label="Áreas do desafio">
+      <a routerLink="/estoque" routerLinkActive="is-active" ariaCurrentWhenActive="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z" />
+          <path d="m4.5 7.5 7.5 4 7.5-4M12 11.5V21" />
+        </svg>
+        Estoque
+      </a>
+      <a routerLink="/comissoes" routerLinkActive="is-active" ariaCurrentWhenActive="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 19V9m6 10V5m6 14v-7m4 7H2" />
+        </svg>
+        Comissões
+      </a>
+      <a routerLink="/juros" routerLinkActive="is-active" ariaCurrentWhenActive="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="8" cy="8" r="3" />
+          <circle cx="16" cy="16" r="3" />
+          <path d="m18 6-12 12" />
+        </svg>
+        Juros
+      </a>
+    </nav>
+  </header>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+
+  <footer class="footer">
+    <span>Desafio técnico</span>
+    <span class="footer__separator" aria-hidden="true"></span>
+    <span>C# · REST · Angular</span>
+  </footer>
+</div>

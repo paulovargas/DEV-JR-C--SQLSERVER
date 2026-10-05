@@ -1,0 +1,142 @@
+<section class="page">
+  <header class="page-heading">
+    <p class="eyebrow">Exercício 01</p>
+    <h1>Comissões de vendas</h1>
+    <p>Carregue as vendas em JSON e veja o total calculado para cada pessoa do time comercial.</p>
+  </header>
+
+  @if (erro()) {
+    <div class="notice notice--error" role="alert">{{ erro() }}</div>
+  }
+
+  <div class="layout-grid">
+    <article class="panel">
+      <header class="panel__header">
+        <div>
+          <h2>Dados de entrada</h2>
+          <p>Formato compatível com o JSON do desafio.</p>
+        </div>
+      </header>
+
+      <div class="panel__body form-stack">
+        <label class="upload-box" for="arquivo-vendas">
+          <span class="upload-box__icon" aria-hidden="true">JSON</span>
+          <span>
+            <strong>Selecionar arquivo de vendas</strong>
+            <small>Arquivo .json com a propriedade vendas</small>
+          </span>
+          <input
+            id="arquivo-vendas"
+            type="file"
+            accept=".json,application/json"
+            (change)="selecionarArquivo($event)">
+        </label>
+
+        @if (carregandoDados()) {
+          <div class="file-summary">Carregando os dados de exemplo…</div>
+        } @else if (dados(); as request) {
+          <div class="file-summary">
+            <span class="file-summary__check" aria-hidden="true">✓</span>
+            <span>
+              <strong>{{ nomeArquivo() }}</strong>
+              <small>{{ request.vendas.length }} vendas prontas para calcular</small>
+            </span>
+          </div>
+        }
+
+        <button
+          class="button button--secondary button--block"
+          type="button"
+          [disabled]="carregandoDados()"
+          (click)="carregarExemplo()">
+          Recarregar dados do desafio
+        </button>
+
+        <div class="rules" aria-label="Faixas de comissão">
+          <div>
+            <span>Até R$ 99,99</span>
+            <strong>0%</strong>
+          </div>
+          <div>
+            <span>R$ 100 a R$ 499,99</span>
+            <strong>1%</strong>
+          </div>
+          <div>
+            <span>A partir de R$ 500</span>
+            <strong>5%</strong>
+          </div>
+        </div>
+
+        <button
+          class="button button--block"
+          type="button"
+          [disabled]="!dados() || calculando()"
+          (click)="calcular()">
+          @if (calculando()) {
+            <span class="button__spinner" aria-hidden="true"></span>
+            Calculando…
+          } @else {
+            Calcular comissões
+          }
+        </button>
+      </div>
+    </article>
+
+    <article class="panel result-panel">
+      <header class="panel__header">
+        <div>
+          <h2>Resultado por vendedor</h2>
+          <p>Valores agrupados após a aplicação das faixas.</p>
+        </div>
+      </header>
+
+      @if (resultado(); as calculo) {
+        <div class="panel__body result-summary">
+          <div class="metric-grid">
+            <div class="metric metric--featured">
+              <span>Comissão total</span>
+              <strong>{{ calculo.comissaoTotalGeral | currency:'BRL' }}</strong>
+            </div>
+            <div class="metric">
+              <span>Vendedores</span>
+              <strong>{{ calculo.vendedores.length }}</strong>
+            </div>
+            <div class="metric">
+              <span>Vendas processadas</span>
+              <strong>{{ dados()?.vendas?.length ?? 0 }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-shell">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Vendedor</th>
+                <th class="text-right">Vendas</th>
+                <th class="text-right">Valor vendido</th>
+                <th class="text-right">Comissão</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (resumo of calculo.vendedores; track resumo.vendedor) {
+                <tr>
+                  <td class="text-strong">{{ resumo.vendedor }}</td>
+                  <td class="text-right">{{ resumo.quantidadeVendas }}</td>
+                  <td class="text-right">{{ resumo.valorTotalVendas | currency:'BRL' }}</td>
+                  <td class="text-right text-strong">{{ resumo.comissaoTotal | currency:'BRL' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <div class="empty-state__icon" aria-hidden="true">%</div>
+          <strong>O resultado aparecerá aqui</strong>
+          <p>Use os dados de exemplo ou selecione outro arquivo JSON e inicie o cálculo.</p>
+        </div>
+      }
+    </article>
+  </div>
+</section>

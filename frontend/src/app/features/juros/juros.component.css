@@ -1,0 +1,154 @@
+.interest-layout {
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+}
+
+.money-input {
+  position: relative;
+}
+
+.money-input span {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.money-input input {
+  padding-left: 38px;
+}
+
+.formula-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #ead69f;
+  border-radius: 12px;
+  padding: 13px;
+  background: var(--accent-soft);
+}
+
+.formula-card__rate {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  color: #fff;
+  background: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.formula-card strong,
+.formula-card small {
+  display: block;
+}
+
+.formula-card strong {
+  color: #594318;
+  font-size: 0.76rem;
+}
+
+.formula-card small {
+  margin-top: 3px;
+  color: #806a3f;
+  font-size: 0.67rem;
+}
+
+.result-content {
+  display: grid;
+  gap: 18px;
+}
+
+.total-card {
+  border-radius: 15px;
+  padding: 22px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 90% 0, rgba(245, 196, 81, 0.3), transparent 50%),
+    var(--brand-dark);
+}
+
+.total-card span,
+.total-card small,
+.total-card strong {
+  display: block;
+}
+
+.total-card span {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.total-card strong {
+  margin-top: 7px;
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+
+.total-card small {
+  margin-top: 7px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.68rem;
+}
+
+.calculation-list {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.calculation-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.calculation-list div:last-child {
+  border-bottom: 0;
+}
+
+.calculation-list dt {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.calculation-list dd {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-align: right;
+}
+
+.calculation-list__interest {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.calculation-list__interest dt {
+  color: inherit;
+  font-weight: 700;
+}
+
+@media (min-width: 861px) {
+  .result-panel {
+    min-height: 460px;
+  }
+}
+
+@media (max-width: 860px) {
+  .interest-layout {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,125 @@
+<section class="page">
+  <header class="page-heading">
+    <p class="eyebrow">Exercício 03</p>
+    <h1>Juros por atraso</h1>
+    <p>Informe o valor e a data de vencimento para calcular os juros acumulados até hoje.</p>
+  </header>
+
+  @if (erro()) {
+    <div class="notice notice--error" role="alert">{{ erro() }}</div>
+  }
+
+  <div class="layout-grid interest-layout">
+    <article class="panel">
+      <header class="panel__header">
+        <div>
+          <h2>Dados do título</h2>
+          <p>O cálculo usa a data atual informada pela API.</p>
+        </div>
+      </header>
+
+      <form class="panel__body form-stack" [formGroup]="formulario" (ngSubmit)="calcular()">
+        <div class="field">
+          <label for="valor">Valor original</label>
+          <div class="money-input">
+            <span aria-hidden="true">R$</span>
+            <input
+              id="valor"
+              type="number"
+              min="0.01"
+              step="0.01"
+              inputmode="decimal"
+              placeholder="0,00"
+              formControlName="valor">
+          </div>
+          @if (formulario.controls.valor.invalid && formulario.controls.valor.touched) {
+            <p class="field__error">Informe um valor maior que zero.</p>
+          }
+        </div>
+
+        <div class="field">
+          <label for="vencimento">Data de vencimento</label>
+          <input id="vencimento" type="date" formControlName="dataVencimento">
+          @if (formulario.controls.dataVencimento.invalid && formulario.controls.dataVencimento.touched) {
+            <p class="field__error">Informe a data de vencimento.</p>
+          }
+        </div>
+
+        <div class="formula-card">
+          <span class="formula-card__rate">2,5%</span>
+          <span>
+            <strong>Juros simples ao dia</strong>
+            <small>Valor × 0,025 × dias em atraso</small>
+          </span>
+        </div>
+
+        <button class="button button--block" type="submit" [disabled]="calculando()">
+          @if (calculando()) {
+            <span class="button__spinner" aria-hidden="true"></span>
+            Calculando…
+          } @else {
+            Calcular valor atualizado
+          }
+        </button>
+      </form>
+    </article>
+
+    <article class="panel result-panel">
+      <header class="panel__header">
+        <div>
+          <h2>Valor atualizado</h2>
+          <p>Resumo do cálculo realizado pela API.</p>
+        </div>
+      </header>
+
+      @if (resultado(); as calculo) {
+        <div class="panel__body result-content">
+          <div class="total-card">
+            <span>Total atualizado</span>
+            <strong>{{ calculo.valorAtualizado | currency:'BRL' }}</strong>
+            <small>Valor original + juros acumulados</small>
+          </div>
+
+          @if (calculo.diasAtraso === 0) {
+            <div class="notice notice--success">
+              Sem juros até {{ formatarData(calculo.dataCalculo) }}.
+            </div>
+          }
+
+          <dl class="calculation-list">
+            <div>
+              <dt>Valor original</dt>
+              <dd>{{ calculo.valorOriginal | currency:'BRL' }}</dd>
+            </div>
+            <div>
+              <dt>Vencimento</dt>
+              <dd>{{ formatarData(calculo.dataVencimento) }}</dd>
+            </div>
+            <div>
+              <dt>Data do cálculo</dt>
+              <dd>{{ formatarData(calculo.dataCalculo) }}</dd>
+            </div>
+            <div>
+              <dt>Dias em atraso</dt>
+              <dd>{{ calculo.diasAtraso }} {{ calculo.diasAtraso === 1 ? 'dia' : 'dias' }}</dd>
+            </div>
+            <div>
+              <dt>Taxa diária</dt>
+              <dd>{{ calculo.taxaDiariaPercentual | number:'1.1-2' }}%</dd>
+            </div>
+            <div class="calculation-list__interest">
+              <dt>Juros calculados</dt>
+              <dd>{{ calculo.valorJuros | currency:'BRL' }}</dd>
+            </div>
+          </dl>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <div class="empty-state__icon" aria-hidden="true">R$</div>
+          <strong>Preencha os dados para calcular</strong>
+          <p>O detalhamento do valor e dos dias em atraso aparecerá neste espaço.</p>
+        </div>
+      }
+    </article>
+  </div>
+</section>
