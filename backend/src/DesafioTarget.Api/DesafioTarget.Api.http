@@ -1,0 +1,54 @@
+@host = http://localhost:5080
+
+### Informações da API
+GET {{host}}/
+Accept: application/json
+
+### Calcula as comissões usando o JSON completo do desafio
+POST {{host}}/api/comissoes/calcular
+Content-Type: application/json
+
+< ./Data/vendas.json
+
+### Lista o estoque atual
+GET {{host}}/api/produtos
+Accept: application/json
+
+### Consulta um produto
+GET {{host}}/api/produtos/101
+Accept: application/json
+
+### Registra uma entrada
+POST {{host}}/api/movimentacoes
+Content-Type: application/json
+
+{
+  "codigoProduto": 101,
+  "tipo": "entrada",
+  "quantidade": 25,
+  "descricao": "Compra do fornecedor"
+}
+
+### Registra uma saída
+POST {{host}}/api/movimentacoes
+Content-Type: application/json
+
+{
+  "codigoProduto": 101,
+  "tipo": "saida",
+  "quantidade": 10,
+  "descricao": "Venda do pedido 123"
+}
+
+### Lista o histórico de movimentações desta execução
+GET {{host}}/api/movimentacoes
+Accept: application/json
+
+### Calcula os juros até a data atual
+POST {{host}}/api/juros/calcular
+Content-Type: application/json
+
+{
+  "valor": 100.00,
+  "dataVencimento": "2026-10-01"
+}
