@@ -56,4 +56,26 @@ public sealed class CalculadoraComissaoTests
         Assert.Equal(2, resumo.QuantidadeVendas);
         Assert.Equal(26m, resumo.ComissaoTotal);
     }
+
+    [Theory]
+    [InlineData(100.50, 1.01)]
+    [InlineData(500.10, 25.01)]
+    public void Calcular_DeveArredondarComissaoDeMeioCentavoParaCima(decimal valor, decimal comissaoEsperada)
+    {
+        var resultado = _calculadora.Calcular([new Venda("Maria", valor)]);
+
+        Assert.Equal(comissaoEsperada, Assert.Single(resultado.Vendedores).ComissaoTotal);
+        Assert.Equal(comissaoEsperada, resultado.ComissaoTotalGeral);
+    }
+
+    [Fact]
+    public void Calcular_DeveSomarComissoesDoVendedorAntesDeArredondar()
+    {
+        var resultado = _calculadora.Calcular([new Venda("Maria", 100.25m), new Venda("Maria", 100.25m)]);
+
+        var resumo = Assert.Single(resultado.Vendedores);
+        Assert.Equal(200.50m, resumo.ValorTotalVendas);
+        Assert.Equal(2.01m, resumo.ComissaoTotal);
+        Assert.Equal(2.01m, resultado.ComissaoTotalGeral);
+    }
 }

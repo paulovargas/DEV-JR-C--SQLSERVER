@@ -29,13 +29,13 @@ public sealed class CalculadoraComissao : ICalculadoraComissao
             .Select(grupo => new ResumoComissao(
                 grupo.Key,
                 grupo.Count(),
-                Arredondar(grupo.Sum(venda => venda.Valor)),
-                Arredondar(grupo.Sum(venda => venda.Comissao))))
+                ArredondamentoMonetario.Arredondar(grupo.Sum(venda => venda.Valor)),
+                ArredondamentoMonetario.Arredondar(grupo.Sum(venda => venda.Comissao))))
             .ToArray();
 
         return new CalculoComissaoResponse(
             resumos,
-            Arredondar(resumos.Sum(resumo => resumo.ComissaoTotal)));
+            ArredondamentoMonetario.Arredondar(resumos.Sum(resumo => resumo.ComissaoTotal)));
     }
 
     public static decimal ObterTaxa(decimal valor)
@@ -47,7 +47,4 @@ public sealed class CalculadoraComissao : ICalculadoraComissao
 
         return valor < 500m ? 0.01m : 0.05m;
     }
-
-    private static decimal Arredondar(decimal valor) =>
-        Math.Round(valor, 2, MidpointRounding.AwayFromZero);
 }

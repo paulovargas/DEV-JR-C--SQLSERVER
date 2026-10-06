@@ -71,7 +71,7 @@ As faixas são aplicadas individualmente a cada venda:
 - valor a partir de R$ 100,00 e menor que R$ 500,00: 1%;
 - valor a partir de R$ 500,00: 5%.
 
-Os cálculos usam `decimal`. A comissão é somada sem arredondamento intermediário e o total de cada vendedor é arredondado para duas casas decimais com `MidpointRounding.AwayFromZero`. Para o JSON completo do desafio, o resultado é:
+Os cálculos usam `decimal`. Comissões e juros compartilham a política `ArredondamentoMonetario`, com duas casas decimais e `MidpointRounding.AwayFromZero`. A comissão é somada sem arredondamento intermediário e o total de cada vendedor é arredondado ao final. Para o JSON completo do desafio, o resultado é:
 
 | Vendedor | Comissão |
 |---|---:|
@@ -162,5 +162,7 @@ Os testes HTTP de movimentações verificam a rejeição de tipos inválidos sem
 Os testes diretos do serviço também cobrem dados inválidos, produto inexistente, saída igual ao saldo, overflow e os limites de estoque e descrição. Os testes HTTP verificam a tradução dos erros do serviço para validação por campo.
 
 Os testes de cálculos monetários verificam os limites individuais e agregados, chamadas diretas inválidas e períodos de atraso que excedem a capacidade do cálculo, além das respostas HTTP de validação.
+
+Os testes também verificam arredondamento de meio centavo em comissões e juros, soma das comissões antes do arredondamento e consultas de produtos com campos, ordenação e filtro por código preservados. A listagem e a consulta de produtos reutilizam uma expressão de projeção executada pelo EF Core no banco, antes da materialização dos resultados.
 
 Os testes de erros verificam contratos `400`, `404`, `409` e `500`, metadados e ausência de detalhes internos em desenvolvimento e produção. Uma falha de gravação simulada com `SaveChangesInterceptor` confirma a resposta genérica, o logging com `traceId` e a preservação dos dados no InMemory; a garantia transacional no SQL Server será verificada pelos testes de integração.

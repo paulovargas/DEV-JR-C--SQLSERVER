@@ -1,4 +1,5 @@
 using System.Data;
+using System.Linq.Expressions;
 using DesafioTarget.Api.Data;
 using DesafioTarget.Api.Models;
 using DesafioTarget.Api.Validation;
@@ -17,14 +18,17 @@ public interface IEstoqueService
 
 public sealed class EstoqueService(DesafioTargetDbContext contexto, TimeProvider relogio) : IEstoqueService
 {
+    private static readonly Expression<Func<ProdutoEstoqueEntity, ProdutoEstoque>> ProjecaoProduto =
+        produto => new ProdutoEstoque(produto.CodigoProduto, produto.DescricaoProduto, produto.Estoque);
+
     public async Task<IReadOnlyList<ProdutoEstoque>> ListarProdutosAsync(CancellationToken cancellationToken) =>
         await contexto.Produtos.AsNoTracking().OrderBy(produto => produto.CodigoProduto)
-            .Select(produto => new ProdutoEstoque(produto.CodigoProduto, produto.DescricaoProduto, produto.Estoque))
+            .Select(ProjecaoProduto)
             .ToListAsync(cancellationToken);
 
     public async Task<ProdutoEstoque?> ObterProdutoAsync(int codigoProduto, CancellationToken cancellationToken) =>
         await contexto.Produtos.AsNoTracking().Where(produto => produto.CodigoProduto == codigoProduto)
-            .Select(produto => new ProdutoEstoque(produto.CodigoProduto, produto.DescricaoProduto, produto.Estoque))
+            .Select(ProjecaoProduto)
             .SingleOrDefaultAsync(cancellationToken);
 
     public async Task<IReadOnlyList<MovimentacaoEstoque>> ListarMovimentacoesAsync(CancellationToken cancellationToken) =>

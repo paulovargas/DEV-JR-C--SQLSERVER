@@ -27,8 +27,8 @@ public sealed class CalculadoraJuros : ICalculadoraJuros
         try
         {
             // Calcula o fator primeiro para evitar perda de precisão em valores próximos do limite.
-            juros = Arredondar(valor * (TaxaDiaria * diasAtraso));
-            valorAtualizado = Arredondar(valor + juros);
+            juros = ArredondamentoMonetario.Arredondar(valor * (TaxaDiaria * diasAtraso));
+            valorAtualizado = ArredondamentoMonetario.Arredondar(valor + juros);
         }
         catch (OverflowException)
         {
@@ -39,7 +39,7 @@ public sealed class CalculadoraJuros : ICalculadoraJuros
             throw CriarErroLimiteCalculo();
 
         return new CalculoJurosResponse(
-            Arredondar(valor),
+            ArredondamentoMonetario.Arredondar(valor),
             dataVencimento,
             dataCalculo,
             diasAtraso,
@@ -52,7 +52,4 @@ public sealed class CalculadoraJuros : ICalculadoraJuros
     {
         ["valor"] = ["O cálculo de juros excede o limite monetário suportado. Reduza o valor ou o período de atraso."]
     });
-
-    private static decimal Arredondar(decimal valor) =>
-        Math.Round(valor, 2, MidpointRounding.AwayFromZero);
 }

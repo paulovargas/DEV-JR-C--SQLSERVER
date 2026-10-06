@@ -56,11 +56,11 @@ export class ComissoesComponent implements OnInit {
       const conteudo = await arquivo.text();
       const dados: unknown = JSON.parse(conteudo);
 
-      if (!this.ehRequestValido(dados)) {
-        throw new Error('O arquivo deve conter uma lista "vendas" com vendedor e valor válidos.');
-      }
-
-      this.definirDados(dados, arquivo.name);
+      this.definirDados(
+        dados,
+        arquivo.name,
+        'O arquivo deve conter uma lista "vendas" com vendedor e valor válidos.'
+      );
     } catch (error) {
       const mensagem = error instanceof SyntaxError
         ? 'O arquivo selecionado não contém um JSON válido.'
@@ -93,10 +93,14 @@ export class ComissoesComponent implements OnInit {
       });
   }
 
-  private definirDados(dados: CalculoComissaoRequest, nomeArquivo: string): void {
+  private definirDados(
+    dados: unknown,
+    nomeArquivo: string,
+    mensagemErro = 'Os dados carregados não possuem vendas válidas.'
+  ): void {
     if (!this.ehRequestValido(dados)) {
       this.dados.set(null);
-      this.erro.set('Os dados carregados não possuem vendas válidas.');
+      this.erro.set(mensagemErro);
       return;
     }
 

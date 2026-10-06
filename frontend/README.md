@@ -43,6 +43,8 @@ Os testes usam o runner nativo do Node, sem dependências adicionais. Verificam 
 
 Os testes do componente de estoque usam a API simulada e verificam descrição vazia ou composta apenas por espaços, os limites de 500 e 501 caracteres após remover espaços externos, normalização do envio e bloqueio durante carregamento ou salvamento. Também conferem atualização após sucesso e nova tentativa após falha. O componente real é compilado em memória com o esbuild já utilizado pelo Angular; esses testes não acessam o banco nem renderizam o template.
 
+Os testes de comissões usam a mesma compilação em memória e API simulada. Verificam importação de arquivos válidos e inválidos, JSON malformado, falhas de leitura, carregamento do exemplo e limpeza da seleção. A validação dos dados é aplicada uma única vez tanto na importação quanto no carregamento do exemplo, preservando as mensagens de cada fluxo.
+
 O helper prioriza mensagens válidas de `errors`, depois `detail` e `title`. Falhas inesperadas exibem a mensagem genérica enviada pela API. Quando o proxy não consegue conectar ao backend, retorna `application/problem+json` com `traceId` e caminho sem parâmetros de consulta.
 
 ## Estrutura

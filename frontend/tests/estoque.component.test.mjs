@@ -1,38 +1,15 @@
 import '@angular/compiler';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injector, runInInjectionContext } from '@angular/core';
-import { build } from 'esbuild';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { fileURLToPath } from 'node:url';
 import { of, Subject } from 'rxjs';
+import { compilarComponente } from './helpers/compilar-componente.mjs';
 
-// O Node não remove decorators Angular; compilamos o componente real em memória.
-const compilacao = await build({
-  stdin: {
-    contents: `
-      export { EstoqueComponent } from './src/app/features/estoque/estoque.component';
-      export { EstoqueApiService } from './src/app/core/services/estoque-api.service';
-    `,
-    resolveDir: fileURLToPath(new URL('../', import.meta.url))
-  },
-  bundle: true,
-  write: false,
-  platform: 'node',
-  format: 'esm',
-  plugins: [{
-    name: 'dependencias-angular',
-    setup(builder) {
-      builder.onResolve({ filter: /^(?:@angular\/|rxjs(?:\/|$)|tslib$)/ }, args => ({
-        path: import.meta.resolve(args.path),
-        external: true
-      }));
-    }
-  }]
-});
-const { EstoqueComponent, EstoqueApiService } = await import(
-  `data:text/javascript;base64,${Buffer.from(compilacao.outputFiles[0].text).toString('base64')}`
-);
+const { EstoqueComponent, EstoqueApiService } = await compilarComponente(`
+  export { EstoqueComponent } from './src/app/features/estoque/estoque.component';
+  export { EstoqueApiService } from './src/app/core/services/estoque-api.service';
+`);
 
 const produto = { codigoProduto: 101, descricaoProduto: 'Caneta', estoque: 150 };
 
