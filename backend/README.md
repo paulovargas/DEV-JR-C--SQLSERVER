@@ -42,6 +42,19 @@ Para executar os testes:
 dotnet test
 ```
 
+Os testes unitários e HTTP em `tests/DesafioTarget.Api.Tests` usam EF InMemory e não dependem de SQL Server. Os testes relacionais de `tests/DesafioTarget.Api.IntegrationTests` são ignorados quando `DESAFIO_TARGET_SQLSERVER_TEST_CONNECTION` não está configurada.
+
+Para executar os testes de integração, mantenha o SQL Server ativo e configure uma conexão com permissão para criar e remover bancos. Na pasta `backend`:
+
+```powershell
+$env:DESAFIO_TARGET_SQLSERVER_TEST_CONNECTION = "Server=localhost,1433;Database=master;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True"
+dotnet test tests/DesafioTarget.Api.IntegrationTests/DesafioTarget.Api.IntegrationTests.csproj
+```
+
+Cada cenário gera um banco com o nome `DesafioTarget_IntegrationTests_` seguido de um GUID, aplica as migrations reais e inclui seus próprios dados. O catálogo informado na conexão é substituído pelo nome exclusivo; o banco da aplicação não é utilizado. Ao final, a limpeza valida o nome e o catálogo e remove somente o banco criado pelo cenário. A variável é utilizada apenas pelos testes de integração.
+
+Os cenários verificam persistência conjunta de saldo e histórico, rollback de gravações anteriores ao commit, falha SQL inesperada, saídas concorrentes e deadlocks reais. Uma barreira assíncrona sincroniza duas transações após a leitura do saldo; o teste confirma o erro SQL `1205` e verifica os dados persistidos em outro contexto, sem depender de qual operação foi escolhida como vítima.
+
 ## Endpoints
 
 | Método | Rota | Descrição |
@@ -100,6 +113,8 @@ O campo `tipo` é obrigatório e aceita `entrada` ou `saida`. Valores ausentes, 
 As alterações e o histórico permanecem no banco após reiniciar a API. A operação usa transação serializável para manter o saldo e o histórico consistentes durante movimentações simultâneas.
 
 O serviço valida código do produto, tipo, quantidade positiva e descrição não vazia de até 500 caracteres após remover espaços externos, inclusive em chamadas diretas. Dados inválidos retornam um resultado com erros por campo, convertido pelo endpoint em HTTP `400`, antes de acessar ou alterar o banco. Entradas que ultrapassem o limite de `int` são rejeitadas; uma saída igual ao saldo é permitida e zera o estoque.
+
+Quando o SQL Server identifica um deadlock e desfaz uma das transações, a API retorna `409 Conflict` com a mensagem "Outra operação de estoque ocorreu ao mesmo tempo. Tente novamente.". O handler reconhece o código SQL `1205` na cadeia de exceções e registra o conflito com `traceId`. A operação rejeitada pode ser reenviada pelo usuário; sua tentativa anterior não altera saldo ou histórico. Os demais erros de banco usam o tratamento genérico de `500`. O desfazimento da transação vítima é descrito no [guia de deadlocks da Microsoft](https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-deadlocks-guide?view=sql-server-ver15).
 
 ### Juros
 
@@ -167,4 +182,4 @@ Os testes de cálculos monetários verificam os limites individuais e agregados,
 
 Os testes também verificam arredondamento de meio centavo em comissões e juros, soma das comissões antes do arredondamento e consultas de produtos com campos, ordenação e filtro por código preservados. A listagem e a consulta de produtos reutilizam uma expressão de projeção executada pelo EF Core no banco, antes da materialização dos resultados.
 
-Os testes de erros verificam contratos `400`, `404`, `409` e `500`, metadados e ausência de detalhes internos em desenvolvimento e produção. Uma falha de gravação simulada com `SaveChangesInterceptor` confirma a resposta genérica, o logging com `traceId` e a preservação dos dados no InMemory; a garantia transacional no SQL Server será verificada pelos testes de integração.
+Os testes de erros verificam contratos `400`, `404`, `409` e `500`, metadados e ausência de detalhes internos em desenvolvimento e produção. Uma falha de gravação simulada com `SaveChangesInterceptor` confirma a resposta genérica, o logging com `traceId` e a preservação dos dados no InMemory. A garantia transacional é verificada separadamente no SQL Server: uma falha provocada após o saldo e o histórico serem gravados, mas antes do commit, deve desfazer ambas as gravações; outro cenário provoca uma violação de constraint somente no banco exclusivo, confirma o código SQL `547`, a resposta segura e o rollback.

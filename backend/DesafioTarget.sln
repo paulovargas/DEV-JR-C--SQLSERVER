@@ -6,6 +6,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesafioTarget.Api", "src\De
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesafioTarget.Api.Tests", "tests\DesafioTarget.Api.Tests\DesafioTarget.Api.Tests.csproj", "{B520D165-95BA-4F10-9E18-6F385E0582B7}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesafioTarget.Api.IntegrationTests", "tests\DesafioTarget.Api.IntegrationTests\DesafioTarget.Api.IntegrationTests.csproj", "{9FD39F8D-0B24-455A-B532-7467E48E010F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,6 +22,10 @@ Global
 		{B520D165-95BA-4F10-9E18-6F385E0582B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B520D165-95BA-4F10-9E18-6F385E0582B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B520D165-95BA-4F10-9E18-6F385E0582B7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FD39F8D-0B24-455A-B532-7467E48E010F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9FD39F8D-0B24-455A-B532-7467E48E010F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9FD39F8D-0B24-455A-B532-7467E48E010F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9FD39F8D-0B24-455A-B532-7467E48E010F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
