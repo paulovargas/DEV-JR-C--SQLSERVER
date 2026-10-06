@@ -35,10 +35,12 @@ public enum StatusMovimentacao
     Sucesso,
     ProdutoNaoEncontrado,
     EstoqueInsuficiente,
-    LimiteDeEstoqueExcedido
+    LimiteDeEstoqueExcedido,
+    DadosInvalidos
 }
 
 public sealed record ResultadoMovimentacao(
     StatusMovimentacao Status,
     MovimentacaoEstoque? Movimentacao,
-    string? Erro);
+    string? Erro,
+    Dictionary<string, string[]>? ErrosValidacao = null);

@@ -74,4 +74,32 @@ public sealed class MovimentacoesEndpointTests
         Assert.NotNull(historico);
         Assert.Equal(movimentacao, Assert.Single(historico));
     }
+
+    [Theory]
+    [InlineData(0, "Teste", "quantidade")]
+    [InlineData(-1, "Teste", "quantidade")]
+    [InlineData(1, null, "descricao")]
+    [InlineData(1, "", "descricao")]
+    [InlineData(1, "   ", "descricao")]
+    public async Task Registrar_DeveTraduzirErrosDoServicoParaValidacaoHttp(int quantidade, string? descricao, string campo)
+    {
+        using var factory = new ApiFactory();
+        using var cliente = factory.CreateClient();
+        using var resposta = await cliente.PostAsJsonAsync("/api/movimentacoes", new
+        {
+            codigoProduto = 101,
+            tipo = "entrada",
+            quantidade,
+            descricao
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        Assert.Equal("application/problem+json", resposta.Content.Headers.ContentType?.MediaType);
+        using var problema = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        Assert.True(problema.RootElement.GetProperty("errors").TryGetProperty(campo, out _));
+        var produto = await cliente.GetFromJsonAsync<ProdutoEstoque>("/api/produtos/101");
+        Assert.NotNull(produto);
+        Assert.Equal(150, produto.Estoque);
+        Assert.Empty((await cliente.GetFromJsonAsync<MovimentacaoEstoque[]>("/api/movimentacoes"))!);
+    }
 }

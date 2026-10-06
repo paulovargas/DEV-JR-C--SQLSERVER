@@ -84,17 +84,11 @@ movimentacoes.MapGet("/{id:long}", async (long id, IEstoqueService estoque, Canc
 
 movimentacoes.MapPost("/", async (MovimentacaoEstoqueRequest request, IEstoqueService estoque, CancellationToken cancellationToken) =>
 {
-    var erros = ValidarMovimentacao(request);
-
-    if (erros.Count > 0)
-    {
-        return Results.ValidationProblem(erros);
-    }
-
     var resultado = await estoque.MovimentarAsync(request, cancellationToken);
 
     return resultado.Status switch
     {
+        StatusMovimentacao.DadosInvalidos => Results.ValidationProblem(resultado.ErrosValidacao!),
         StatusMovimentacao.Sucesso => Results.Created(
             $"/api/movimentacoes/{resultado.Movimentacao!.Id}",
             resultado.Movimentacao),
@@ -160,41 +154,6 @@ static Dictionary<string, string[]> ValidarVendas(List<Venda>? vendas)
         {
             erros[$"vendas[{indice}].valor"] = ["O valor da venda deve ser maior que zero."];
         }
-    }
-
-    return erros;
-}
-
-static Dictionary<string, string[]> ValidarMovimentacao(MovimentacaoEstoqueRequest request)
-{
-    var erros = new Dictionary<string, string[]>();
-
-    if (request.Tipo is null)
-    {
-        erros["tipo"] = ["O tipo da movimentação é obrigatório."];
-    }
-    else if (!Enum.IsDefined(request.Tipo.Value))
-    {
-        erros["tipo"] = ["O tipo da movimentação deve ser entrada ou saida."];
-    }
-
-    if (request.CodigoProduto <= 0)
-    {
-        erros["codigoProduto"] = ["O código do produto deve ser maior que zero."];
-    }
-
-    if (request.Quantidade <= 0)
-    {
-        erros["quantidade"] = ["A quantidade deve ser maior que zero."];
-    }
-
-    if (string.IsNullOrWhiteSpace(request.Descricao))
-    {
-        erros["descricao"] = ["A descrição da movimentação é obrigatória."];
-    }
-    else if (request.Descricao.Trim().Length > 500)
-    {
-        erros["descricao"] = ["A descrição da movimentação deve ter no máximo 500 caracteres."];
     }
 
     return erros;

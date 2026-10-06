@@ -88,6 +88,8 @@ O campo `tipo` é obrigatório e aceita `entrada` ou `saida`. Valores ausentes, 
 
 As alterações e o histórico permanecem no banco após reiniciar a API. A operação usa transação serializável para manter o saldo e o histórico consistentes durante movimentações simultâneas.
 
+O serviço valida código do produto, tipo, quantidade positiva e descrição não vazia de até 500 caracteres após remover espaços externos, inclusive em chamadas diretas. Dados inválidos retornam um resultado com erros por campo, convertido pelo endpoint em HTTP `400`, antes de acessar ou alterar o banco. Entradas que ultrapassem o limite de `int` são rejeitadas; uma saída igual ao saldo é permitida e zera o estoque.
+
 ### Juros
 
 Exemplo de entrada:
@@ -120,3 +122,5 @@ Os testes cobrem os limites de R$ 100,00 e R$ 500,00, os totais do JSON fornecid
 Os testes HTTP de comissões verificam validações, mensagens por campo e os totais do JSON do desafio. Utilizam a API hospedada em memória e EF InMemory, sem precisar de SQL Server; não verificam o comportamento relacional do estoque.
 
 Os testes HTTP de movimentações verificam a rejeição de tipos inválidos sem alteração do saldo ou histórico e a persistência de entradas e saídas válidas. Cada instância da API de teste usa um banco InMemory isolado.
+
+Os testes diretos do serviço também cobrem dados inválidos, produto inexistente, saída igual ao saldo, overflow e os limites de estoque e descrição. Os testes HTTP verificam a tradução dos erros do serviço para validação por campo.
