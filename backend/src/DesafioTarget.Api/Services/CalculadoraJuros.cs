@@ -1,12 +1,8 @@
-using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Models.Juros;
+using DesafioTarget.Api.Services.Interfaces;
 using DesafioTarget.Api.Validation;
 
 namespace DesafioTarget.Api.Services;
-
-public interface ICalculadoraJuros
-{
-    CalculoJurosResponse Calcular(decimal valor, DateOnly dataVencimento, DateOnly dataCalculo);
-}
 
 public sealed class CalculadoraJuros : ICalculadoraJuros
 {

@@ -16,9 +16,11 @@ O estoque é persistido no SQL Server. Na primeira execução, a API aplica as m
 - `Program.cs`: configuração, injeção de dependências, middleware e composição da aplicação.
 - `Endpoints/`: mapeamento das rotas de informações, comissões, estoque e juros, incluindo a tradução dos resultados para respostas HTTP.
 - `Validation/`: validação das entradas, utilizada pelas calculadoras e pelo serviço de estoque.
-- `Services/`: cálculos e operações de estoque.
+- `Models/Comissoes/`, `Models/Estoque/` e `Models/Juros/`: requests, responses, enums e resultados por funcionalidade, com um arquivo por tipo.
+- `Services/`: cálculos e operações de estoque; `Services/Interfaces/` reúne os contratos dos serviços.
 - `Errors/`: respostas de erro padronizadas e tratamento centralizado de exceções.
-- `Data/` e `Migrations/`: acesso ao banco, carga inicial e evolução do esquema.
+- `Data/`: contexto EF Core e carga inicial; `Data/Entities/` contém as entidades de persistência em arquivos próprios.
+- `Migrations/`: histórico de evolução do esquema.
 
 ## Como executar
 

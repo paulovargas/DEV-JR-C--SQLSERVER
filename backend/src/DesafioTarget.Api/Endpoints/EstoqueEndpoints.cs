@@ -1,6 +1,6 @@
 using DesafioTarget.Api.Errors;
-using DesafioTarget.Api.Models;
-using DesafioTarget.Api.Services;
+using DesafioTarget.Api.Models.Estoque;
+using DesafioTarget.Api.Services.Interfaces;
 
 namespace DesafioTarget.Api.Endpoints;
 

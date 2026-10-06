@@ -1,5 +1,6 @@
 using DesafioTarget.Api.Data;
-using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Data.Entities;
+using DesafioTarget.Api.Models.Estoque;
 using DesafioTarget.Api.Services;
 using Microsoft.EntityFrameworkCore;
 

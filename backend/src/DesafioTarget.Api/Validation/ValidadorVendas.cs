@@ -1,4 +1,4 @@
-using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Models.Comissoes;
 using DesafioTarget.Api.Services;
 
 namespace DesafioTarget.Api.Validation;

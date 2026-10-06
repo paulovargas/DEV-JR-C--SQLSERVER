@@ -1,20 +1,13 @@
 using System.Data;
 using System.Linq.Expressions;
 using DesafioTarget.Api.Data;
-using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Data.Entities;
+using DesafioTarget.Api.Models.Estoque;
+using DesafioTarget.Api.Services.Interfaces;
 using DesafioTarget.Api.Validation;
 using Microsoft.EntityFrameworkCore;
 
 namespace DesafioTarget.Api.Services;
-
-public interface IEstoqueService
-{
-    Task<IReadOnlyList<ProdutoEstoque>> ListarProdutosAsync(CancellationToken cancellationToken);
-    Task<ProdutoEstoque?> ObterProdutoAsync(int codigoProduto, CancellationToken cancellationToken);
-    Task<IReadOnlyList<MovimentacaoEstoque>> ListarMovimentacoesAsync(CancellationToken cancellationToken);
-    Task<MovimentacaoEstoque?> ObterMovimentacaoAsync(long id, CancellationToken cancellationToken);
-    Task<ResultadoMovimentacao> MovimentarAsync(MovimentacaoEstoqueRequest request, CancellationToken cancellationToken);
-}
 
 public sealed class EstoqueService(DesafioTargetDbContext contexto, TimeProvider relogio) : IEstoqueService
 {

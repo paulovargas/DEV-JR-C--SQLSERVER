@@ -1,12 +1,8 @@
-using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Models.Comissoes;
+using DesafioTarget.Api.Services.Interfaces;
 using DesafioTarget.Api.Validation;
 
 namespace DesafioTarget.Api.Services;
-
-public interface ICalculadoraComissao
-{
-    CalculoComissaoResponse Calcular(IEnumerable<Venda> vendas);
-}
 
 public sealed class CalculadoraComissao : ICalculadoraComissao
 {

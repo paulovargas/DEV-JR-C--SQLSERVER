@@ -1,4 +1,4 @@
-using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Models.Estoque;
 
 namespace DesafioTarget.Api.Validation;
 

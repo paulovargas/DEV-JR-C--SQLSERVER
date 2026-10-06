@@ -1,8 +1,4 @@
-namespace DesafioTarget.Api.Models;
-
-public sealed record CalculoJurosRequest(
-    decimal Valor,
-    DateOnly DataVencimento);
+namespace DesafioTarget.Api.Models.Juros;
 
 public sealed record CalculoJurosResponse(
     decimal ValorOriginal,

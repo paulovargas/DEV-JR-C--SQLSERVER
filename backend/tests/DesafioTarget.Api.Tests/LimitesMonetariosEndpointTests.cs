@@ -1,7 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Models.Comissoes;
+using DesafioTarget.Api.Models.Juros;
 using DesafioTarget.Api.Services;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,4 +1,4 @@
-using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace DesafioTarget.Api.Data;
@@ -29,24 +29,4 @@ public sealed class DesafioTargetDbContext(DbContextOptions<DesafioTargetDbConte
             entidade.HasOne<ProdutoEstoqueEntity>().WithMany().HasForeignKey(movimentacao => movimentacao.CodigoProduto).OnDelete(DeleteBehavior.Restrict);
         });
     }
-}
-
-public sealed class ProdutoEstoqueEntity
-{
-    public int CodigoProduto { get; set; }
-    public string DescricaoProduto { get; set; } = string.Empty;
-    public int Estoque { get; set; }
-}
-
-public sealed class MovimentacaoEstoqueEntity
-{
-    public long Id { get; set; }
-    public int CodigoProduto { get; set; }
-    public string DescricaoProduto { get; set; } = string.Empty;
-    public TipoMovimentacao Tipo { get; set; }
-    public int Quantidade { get; set; }
-    public string Descricao { get; set; } = string.Empty;
-    public int EstoqueAnterior { get; set; }
-    public int EstoqueFinal { get; set; }
-    public DateTimeOffset RealizadaEm { get; set; }
 }

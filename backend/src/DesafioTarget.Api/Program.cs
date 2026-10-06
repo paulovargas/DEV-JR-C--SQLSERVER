@@ -4,6 +4,7 @@ using DesafioTarget.Api.Data;
 using DesafioTarget.Api.Endpoints;
 using DesafioTarget.Api.Errors;
 using DesafioTarget.Api.Services;
+using DesafioTarget.Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
