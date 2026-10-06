@@ -84,12 +84,16 @@
           <label for="descricao">Descrição</label>
           <textarea
             id="descricao"
-            maxlength="120"
+            [attr.maxlength]="limiteDescricao"
             placeholder="Ex.: venda do pedido 123"
             formControlName="descricao"></textarea>
-          <p class="field__hint">{{ formulario.controls.descricao.value.length }}/120 caracteres</p>
+          <p class="field__hint">{{ formulario.controls.descricao.value.trim().length }}/{{ limiteDescricao }} caracteres</p>
           @if (formulario.controls.descricao.invalid && formulario.controls.descricao.touched) {
-            <p class="field__error">Informe uma descrição para identificar a movimentação.</p>
+            @if (formulario.controls.descricao.hasError('maxlength')) {
+              <p class="field__error">A descrição deve ter no máximo {{ limiteDescricao }} caracteres.</p>
+            } @else {
+              <p class="field__error">Informe uma descrição para identificar a movimentação.</p>
+            }
           }
         </div>
 

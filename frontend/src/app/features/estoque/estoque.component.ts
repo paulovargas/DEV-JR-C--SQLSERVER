@@ -21,6 +21,7 @@ import { obterMensagemErro } from '../../core/utils/api-error';
 export class EstoqueComponent implements OnInit {
   private readonly api = inject(EstoqueApiService);
 
+  readonly limiteDescricao = 500;
   readonly produtos = signal<ProdutoEstoque[]>([]);
   readonly movimentacoes = signal<MovimentacaoEstoque[]>([]);
   readonly codigoSelecionado = signal(0);
@@ -47,7 +48,16 @@ export class EstoqueComponent implements OnInit {
     }),
     descricao: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(120)]
+      validators: [control => {
+        const descricao = typeof control.value === 'string' ? control.value.trim() : '';
+        if (!descricao)
+          return { required: true };
+
+        if (descricao.length > this.limiteDescricao)
+          return { maxlength: { requiredLength: this.limiteDescricao, actualLength: descricao.length } };
+
+        return null;
+      }]
     })
   });
 
@@ -83,6 +93,9 @@ export class EstoqueComponent implements OnInit {
   }
 
   registrar(): void {
+    if (this.salvando() || this.carregando())
+      return;
+
     this.sucesso.set(null);
     this.erro.set(null);
 
@@ -91,7 +104,8 @@ export class EstoqueComponent implements OnInit {
       return;
     }
 
-    const request: MovimentacaoEstoqueRequest = this.formulario.getRawValue();
+    const dados = this.formulario.getRawValue();
+    const request: MovimentacaoEstoqueRequest = { ...dados, descricao: dados.descricao.trim() };
     this.salvando.set(true);
 
     this.api.registrar(request)
