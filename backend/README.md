@@ -117,7 +117,7 @@ O limite técnico é `792281625142643375935439503`, definido em `LimitesMonetari
 - A soma de todas as vendas de uma requisição, mesmo de vendedores diferentes, deve respeitar o mesmo limite. A validação verifica o saldo disponível do limite antes de somar.
 - Os juros e o valor atualizado, após arredondamento, também devem respeitar o limite. Um principal aceito pode ser rejeitado quando o período de atraso produz um resultado acima do limite.
 
-As calculadoras aplicam essas validações também em chamadas diretas e sinalizam rejeições com `CalculoInvalidoException`, contendo erros por campo. Os endpoints convertem essa exceção em HTTP `400 Bad Request`. Overflow aritmético nos juros é convertido na mesma rejeição, sem expor a exceção interna. As faixas de comissão, os juros simples de 2,5% ao dia e a política de arredondamento permanecem iguais.
+As calculadoras aplicam essas validações também em chamadas diretas e sinalizam rejeições com `CalculoInvalidoException`, contendo erros por campo. O tratamento centralizado converte essa exceção em HTTP `400 Bad Request`. Overflow aritmético nos juros é convertido na mesma rejeição, sem expor a exceção interna. As faixas de comissão, os juros simples de 2,5% ao dia e a política de arredondamento permanecem iguais.
 
 ## Validações e respostas HTTP
 
@@ -126,6 +126,23 @@ As calculadoras aplicam essas validações também em chamadas diretas e sinaliz
 - Produto ou movimentação inexistente retorna `404 Not Found`.
 - Saída sem saldo suficiente retorna `409 Conflict`.
 - Uma movimentação criada retorna `201 Created` com a URL para consulta no cabeçalho `Location`.
+
+Os erros HTTP da API usam `application/problem+json`, com `type`, `title`, `status`, `detail`, `instance` e `traceId`. Os erros de validação também incluem `errors`, um objeto com mensagens por campo. `instance` informa somente o caminho, sem incluir parâmetros de consulta.
+
+Exemplo de conflito por estoque insuficiente:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.10",
+  "title": "Conflito na operação.",
+  "status": 409,
+  "detail": "Estoque insuficiente. Saldo atual: 150.",
+  "instance": "/api/movimentacoes",
+  "traceId": "identificador-da-requisicao"
+}
+```
+
+Falhas inesperadas retornam `500` com mensagem genérica, inclusive em desenvolvimento. A resposta não inclui stack trace, SQL ou detalhes internos. O servidor registra a exceção com método, caminho e o mesmo `traceId` da resposta para permitir investigação. JSON inválido, corpo ausente e erros de desserialização são tratados como falhas de requisição com mensagem segura; rotas inexistentes e métodos não permitidos também recebem o contrato padronizado.
 
 Os testes cobrem os limites de R$ 100,00 e R$ 500,00, os totais do JSON fornecido, agrupamento de vendedores, entrada e saída, saldo insuficiente e cálculo de juros com e sem atraso.
 
@@ -136,3 +153,5 @@ Os testes HTTP de movimentações verificam a rejeição de tipos inválidos sem
 Os testes diretos do serviço também cobrem dados inválidos, produto inexistente, saída igual ao saldo, overflow e os limites de estoque e descrição. Os testes HTTP verificam a tradução dos erros do serviço para validação por campo.
 
 Os testes de cálculos monetários verificam os limites individuais e agregados, chamadas diretas inválidas e períodos de atraso que excedem a capacidade do cálculo, além das respostas HTTP de validação.
+
+Os testes de erros verificam contratos `400`, `404`, `409` e `500`, metadados e ausência de detalhes internos em desenvolvimento e produção. Uma falha de gravação simulada com `SaveChangesInterceptor` confirma a resposta genérica, o logging com `traceId` e a preservação dos dados no InMemory; a garantia transacional no SQL Server será verificada pelos testes de integração.

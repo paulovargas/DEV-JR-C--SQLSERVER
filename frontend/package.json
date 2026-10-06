@@ -6,6 +6,7 @@
     "start": "npm run build && node dev-server.mjs",
     "start:angular": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "watch": "ng build --watch --configuration development"
   },
   "dependencies": {

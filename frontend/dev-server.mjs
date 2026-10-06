@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import http from 'node:http';
@@ -42,12 +43,19 @@ function proxyToApi(request, response) {
   });
 
   upstream.on('error', () => {
-    if (!response.headersSent) {
-      response.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+    if (response.headersSent) {
+      response.destroy();
+      return;
     }
 
+    response.writeHead(502, { 'Content-Type': 'application/problem+json; charset=utf-8' });
     response.end(JSON.stringify({
-      erro: `Não foi possível conectar à API em http://${apiHost}:${apiPort}.`
+      type: 'about:blank',
+      title: 'Não foi possível conectar à API.',
+      status: 502,
+      detail: `Não foi possível conectar à API em http://${apiHost}:${apiPort}.`,
+      instance: request.url?.split('?')[0] ?? '/',
+      traceId: randomUUID()
     }));
   });
 
