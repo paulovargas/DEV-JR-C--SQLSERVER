@@ -84,7 +84,7 @@ Exemplo de entrada:
 }
 ```
 
-O campo `tipo` aceita `entrada` ou `saida`. O identificador é numérico e gerado pelo SQL Server. A resposta informa o saldo anterior e o saldo final. Uma saída maior que o saldo retorna HTTP `409 Conflict` e não altera o produto.
+O campo `tipo` é obrigatório e aceita `entrada` ou `saida`. Valores ausentes, nulos, desconhecidos ou numéricos retornam HTTP `400 Bad Request`, sem alterar saldo ou histórico. O identificador é numérico e gerado pelo SQL Server. A resposta informa o saldo anterior e o saldo final. Uma saída maior que o saldo retorna HTTP `409 Conflict` e não altera o produto.
 
 As alterações e o histórico permanecem no banco após reiniciar a API. A operação usa transação serializável para manter o saldo e o histórico consistentes durante movimentações simultâneas.
 
@@ -118,3 +118,5 @@ A data de cálculo é a data local do servidor. Vencimentos no dia atual ou no f
 Os testes cobrem os limites de R$ 100,00 e R$ 500,00, os totais do JSON fornecido, agrupamento de vendedores, entrada e saída, saldo insuficiente e cálculo de juros com e sem atraso.
 
 Os testes HTTP de comissões verificam validações, mensagens por campo e os totais do JSON do desafio. Utilizam a API hospedada em memória e EF InMemory, sem precisar de SQL Server; não verificam o comportamento relacional do estoque.
+
+Os testes HTTP de movimentações verificam a rejeição de tipos inválidos sem alteração do saldo ou histórico e a persistência de entradas e saídas válidas. Cada instância da API de teste usa um banco InMemory isolado.

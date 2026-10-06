@@ -169,6 +169,15 @@ static Dictionary<string, string[]> ValidarMovimentacao(MovimentacaoEstoqueReque
 {
     var erros = new Dictionary<string, string[]>();
 
+    if (request.Tipo is null)
+    {
+        erros["tipo"] = ["O tipo da movimentação é obrigatório."];
+    }
+    else if (!Enum.IsDefined(request.Tipo.Value))
+    {
+        erros["tipo"] = ["O tipo da movimentação deve ser entrada ou saida."];
+    }
+
     if (request.CodigoProduto <= 0)
     {
         erros["codigoProduto"] = ["O código do produto deve ser maior que zero."];

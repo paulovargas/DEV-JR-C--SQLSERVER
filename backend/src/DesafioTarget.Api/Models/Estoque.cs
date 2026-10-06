@@ -15,7 +15,7 @@ public enum TipoMovimentacao
 
 public sealed record MovimentacaoEstoqueRequest(
     int CodigoProduto,
-    TipoMovimentacao Tipo,
+    TipoMovimentacao? Tipo,
     int Quantidade,
     string? Descricao);
 

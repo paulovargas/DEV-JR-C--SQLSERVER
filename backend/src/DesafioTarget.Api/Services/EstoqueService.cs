@@ -38,6 +38,7 @@ public sealed class EstoqueService(DesafioTargetDbContext contexto, TimeProvider
 
     public async Task<ResultadoMovimentacao> MovimentarAsync(MovimentacaoEstoqueRequest request, CancellationToken cancellationToken)
     {
+        var tipo = request.Tipo ?? throw new ArgumentException("O tipo da movimentação é obrigatório.", nameof(request));
         await using var transacao = contexto.Database.IsRelational()
             ? await contexto.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken)
             : null;
@@ -46,13 +47,13 @@ public sealed class EstoqueService(DesafioTargetDbContext contexto, TimeProvider
         if (produto is null)
             return new ResultadoMovimentacao(StatusMovimentacao.ProdutoNaoEncontrado, null, $"Produto de código {request.CodigoProduto} não encontrado.");
 
-        if (request.Tipo == TipoMovimentacao.Saida && request.Quantidade > produto.Estoque)
+        if (tipo == TipoMovimentacao.Saida && request.Quantidade > produto.Estoque)
             return new ResultadoMovimentacao(StatusMovimentacao.EstoqueInsuficiente, null, $"Estoque insuficiente. Saldo atual: {produto.Estoque}.");
 
         int estoqueFinal;
         try
         {
-            estoqueFinal = request.Tipo == TipoMovimentacao.Entrada
+            estoqueFinal = tipo == TipoMovimentacao.Entrada
                 ? checked(produto.Estoque + request.Quantidade)
                 : produto.Estoque - request.Quantidade;
         }
@@ -66,7 +67,7 @@ public sealed class EstoqueService(DesafioTargetDbContext contexto, TimeProvider
         {
             CodigoProduto = produto.CodigoProduto,
             DescricaoProduto = produto.DescricaoProduto,
-            Tipo = request.Tipo,
+            Tipo = tipo,
             Quantidade = request.Quantidade,
             Descricao = request.Descricao!.Trim(),
             EstoqueAnterior = produto.Estoque,

@@ -2,21 +2,15 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using DesafioTarget.Api.Data;
 using DesafioTarget.Api.Models;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace DesafioTarget.Api.Tests;
 
-public sealed class ComissoesEndpointTests : IClassFixture<ComissoesApiFactory>
+public sealed class ComissoesEndpointTests : IClassFixture<ApiFactory>
 {
     private readonly HttpClient _cliente;
 
-    public ComissoesEndpointTests(ComissoesApiFactory factory)
+    public ComissoesEndpointTests(ApiFactory factory)
     {
         _cliente = factory.CreateClient();
     }
@@ -73,18 +67,5 @@ public sealed class ComissoesEndpointTests : IClassFixture<ComissoesApiFactory>
         Assert.NotNull(resultado);
         Assert.Equal(new[] { 495.68m, 465.95m, 379.37m, 404.98m }, resultado.Vendedores.Select(vendedor => vendedor.ComissaoTotal));
         Assert.Equal(1745.98m, resultado.ComissaoTotalGeral);
-    }
-}
-
-public sealed class ComissoesApiFactory : WebApplicationFactory<Program>
-{
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.ConfigureServices(servicos =>
-        {
-            servicos.RemoveAll<DbContextOptions<DesafioTargetDbContext>>();
-            servicos.AddDbContext<DesafioTargetDbContext>(opcoes =>
-                opcoes.UseInMemoryDatabase($"comissoes-http-{Guid.NewGuid()}"));
-        });
     }
 }
