@@ -40,7 +40,7 @@ Content-Type: application/json
   "descricao": "Venda do pedido 123"
 }
 
-### Lista o histórico de movimentações desta execução
+### Lista o histórico de movimentações persistidas
 GET {{host}}/api/movimentacoes
 Accept: application/json
 

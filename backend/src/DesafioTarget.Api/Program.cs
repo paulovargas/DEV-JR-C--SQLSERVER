@@ -171,6 +171,10 @@ static Dictionary<string, string[]> ValidarMovimentacao(MovimentacaoEstoqueReque
     {
         erros["descricao"] = ["A descrição da movimentação é obrigatória."];
     }
+    else if (request.Descricao.Trim().Length > 500)
+    {
+        erros["descricao"] = ["A descrição da movimentação deve ter no máximo 500 caracteres."];
+    }
 
     return erros;
 }

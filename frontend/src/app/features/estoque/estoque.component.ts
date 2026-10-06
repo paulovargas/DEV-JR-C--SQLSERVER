@@ -67,7 +67,7 @@ export class EstoqueComponent implements OnInit {
       .subscribe({
         next: ({ produtos, movimentacoes }) => {
           this.produtos.set(produtos);
-          this.movimentacoes.set([...movimentacoes].reverse());
+          this.movimentacoes.set(movimentacoes);
 
           if (produtos.length > 0 && this.formulario.controls.codigoProduto.value === 0) {
             this.selecionarCodigo(produtos[0].codigoProduto);

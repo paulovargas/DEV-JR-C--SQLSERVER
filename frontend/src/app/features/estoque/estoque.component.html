@@ -2,11 +2,11 @@
   <header class="page-heading">
     <p class="eyebrow">Exercício 02</p>
     <h1>Movimentação de estoque</h1>
-    <p>Registre entradas e saídas, acompanhe o saldo atualizado e consulte o histórico da execução.</p>
+    <p>Registre entradas e saídas, acompanhe o saldo atualizado e consulte o histórico persistido.</p>
   </header>
 
   <div class="notice notice--info">
-    Os saldos ficam em memória durante esta execução da API e voltam ao JSON inicial quando ela reinicia.
+    Os saldos e as movimentações são persistidos no SQL Server e permanecem disponíveis após reiniciar a API.
   </div>
 
   @if (erro()) {

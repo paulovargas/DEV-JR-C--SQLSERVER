@@ -114,4 +114,4 @@ A data de cálculo é a data local do servidor. Vencimentos no dia atual ou no f
 - Saída sem saldo suficiente retorna `409 Conflict`.
 - Uma movimentação criada retorna `201 Created` com a URL para consulta no cabeçalho `Location`.
 
-Os testes cobrem os limites de R$ 100,00 e R$ 500,00, os totais do JSON fornecido, agrupamento de vendedores, entrada e saída, saldo insuficiente, concorrência e cálculo de juros com e sem atraso.
+Os testes cobrem os limites de R$ 100,00 e R$ 500,00, os totais do JSON fornecido, agrupamento de vendedores, entrada e saída, saldo insuficiente e cálculo de juros com e sem atraso.
