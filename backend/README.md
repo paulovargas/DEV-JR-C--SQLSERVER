@@ -11,6 +11,15 @@ API REST em ASP.NET Core que resolve os três exercícios propostos: comissão d
 
 O estoque é persistido no SQL Server. Na primeira execução, a API aplica as migrations e inclui no banco os produtos de `Data/estoque.json`.
 
+## Organização do código
+
+- `Program.cs`: configuração, injeção de dependências, middleware e composição da aplicação.
+- `Endpoints/`: mapeamento das rotas de informações, comissões, estoque e juros, incluindo a tradução dos resultados para respostas HTTP.
+- `Validation/`: validação das entradas, utilizada pelas calculadoras e pelo serviço de estoque.
+- `Services/`: cálculos e operações de estoque.
+- `Errors/`: respostas de erro padronizadas e tratamento centralizado de exceções.
+- `Data/` e `Migrations/`: acesso ao banco, carga inicial e evolução do esquema.
+
 ## Como executar
 
 É necessário ter o SDK do .NET 8 e o SQL Server em execução. O container local está configurado em `C:\projetos\sqlserver-desafio-target` e pode ser iniciado com `docker compose up -d` nessa pasta.

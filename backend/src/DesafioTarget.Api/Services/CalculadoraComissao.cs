@@ -1,4 +1,5 @@
 using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Validation;
 
 namespace DesafioTarget.Api.Services;
 

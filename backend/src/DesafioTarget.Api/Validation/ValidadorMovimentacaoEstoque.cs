@@ -1,6 +1,6 @@
 using DesafioTarget.Api.Models;
 
-namespace DesafioTarget.Api.Services;
+namespace DesafioTarget.Api.Validation;
 
 public static class ValidadorMovimentacaoEstoque
 {

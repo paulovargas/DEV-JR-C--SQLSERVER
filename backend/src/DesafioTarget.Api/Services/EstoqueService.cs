@@ -1,6 +1,7 @@
 using System.Data;
 using DesafioTarget.Api.Data;
 using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Validation;
 using Microsoft.EntityFrameworkCore;
 
 namespace DesafioTarget.Api.Services;

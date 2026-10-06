@@ -1,6 +1,7 @@
 using DesafioTarget.Api.Models;
+using DesafioTarget.Api.Services;
 
-namespace DesafioTarget.Api.Services;
+namespace DesafioTarget.Api.Validation;
 
 public static class ValidadorVendas
 {
