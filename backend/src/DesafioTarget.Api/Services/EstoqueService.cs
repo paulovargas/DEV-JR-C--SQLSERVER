@@ -1,148 +1,90 @@
-using System.Text.Json;
+using System.Data;
+using DesafioTarget.Api.Data;
 using DesafioTarget.Api.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace DesafioTarget.Api.Services;
 
 public interface IEstoqueService
 {
-    IReadOnlyList<ProdutoEstoque> ListarProdutos();
-    ProdutoEstoque? ObterProduto(int codigoProduto);
-    IReadOnlyList<MovimentacaoEstoque> ListarMovimentacoes();
-    MovimentacaoEstoque? ObterMovimentacao(Guid id);
-    ResultadoMovimentacao Movimentar(MovimentacaoEstoqueRequest request);
+    Task<IReadOnlyList<ProdutoEstoque>> ListarProdutosAsync(CancellationToken cancellationToken);
+    Task<ProdutoEstoque?> ObterProdutoAsync(int codigoProduto, CancellationToken cancellationToken);
+    Task<IReadOnlyList<MovimentacaoEstoque>> ListarMovimentacoesAsync(CancellationToken cancellationToken);
+    Task<MovimentacaoEstoque?> ObterMovimentacaoAsync(long id, CancellationToken cancellationToken);
+    Task<ResultadoMovimentacao> MovimentarAsync(MovimentacaoEstoqueRequest request, CancellationToken cancellationToken);
 }
 
-public sealed class EstoqueService : IEstoqueService
+public sealed class EstoqueService(DesafioTargetDbContext contexto, TimeProvider relogio) : IEstoqueService
 {
-    private readonly object _controleConcorrencia = new();
-    private readonly Dictionary<int, ProdutoEstoque> _produtos;
-    private readonly List<MovimentacaoEstoque> _movimentacoes = [];
-    private readonly TimeProvider _relogio;
+    public async Task<IReadOnlyList<ProdutoEstoque>> ListarProdutosAsync(CancellationToken cancellationToken) =>
+        await contexto.Produtos.AsNoTracking().OrderBy(produto => produto.CodigoProduto)
+            .Select(produto => new ProdutoEstoque(produto.CodigoProduto, produto.DescricaoProduto, produto.Estoque))
+            .ToListAsync(cancellationToken);
 
-    public EstoqueService(IEnumerable<ProdutoEstoque> produtos, TimeProvider relogio)
+    public async Task<ProdutoEstoque?> ObterProdutoAsync(int codigoProduto, CancellationToken cancellationToken) =>
+        await contexto.Produtos.AsNoTracking().Where(produto => produto.CodigoProduto == codigoProduto)
+            .Select(produto => new ProdutoEstoque(produto.CodigoProduto, produto.DescricaoProduto, produto.Estoque))
+            .SingleOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<MovimentacaoEstoque>> ListarMovimentacoesAsync(CancellationToken cancellationToken) =>
+        await contexto.Movimentacoes.AsNoTracking().OrderByDescending(movimentacao => movimentacao.RealizadaEm)
+            .Select(movimentacao => ParaModelo(movimentacao)).ToListAsync(cancellationToken);
+
+    public async Task<MovimentacaoEstoque?> ObterMovimentacaoAsync(long id, CancellationToken cancellationToken)
     {
-        _produtos = produtos.ToDictionary(produto => produto.CodigoProduto);
-        _relogio = relogio;
+        var movimentacao = await contexto.Movimentacoes.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        return movimentacao is null ? null : ParaModelo(movimentacao);
     }
 
-    public static EstoqueService CarregarDeArquivo(string caminho, TimeProvider relogio)
+    public async Task<ResultadoMovimentacao> MovimentarAsync(MovimentacaoEstoqueRequest request, CancellationToken cancellationToken)
     {
-        if (!File.Exists(caminho))
+        await using var transacao = contexto.Database.IsRelational()
+            ? await contexto.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken)
+            : null;
+        var produto = await contexto.Produtos.SingleOrDefaultAsync(item => item.CodigoProduto == request.CodigoProduto, cancellationToken);
+
+        if (produto is null)
+            return new ResultadoMovimentacao(StatusMovimentacao.ProdutoNaoEncontrado, null, $"Produto de código {request.CodigoProduto} não encontrado.");
+
+        if (request.Tipo == TipoMovimentacao.Saida && request.Quantidade > produto.Estoque)
+            return new ResultadoMovimentacao(StatusMovimentacao.EstoqueInsuficiente, null, $"Estoque insuficiente. Saldo atual: {produto.Estoque}.");
+
+        int estoqueFinal;
+        try
         {
-            throw new FileNotFoundException("O arquivo de estoque inicial não foi encontrado.", caminho);
+            estoqueFinal = request.Tipo == TipoMovimentacao.Entrada
+                ? checked(produto.Estoque + request.Quantidade)
+                : produto.Estoque - request.Quantidade;
+        }
+        catch (OverflowException)
+        {
+            return new ResultadoMovimentacao(StatusMovimentacao.LimiteDeEstoqueExcedido, null,
+                "A quantidade informada excede o limite suportado para o estoque.");
         }
 
-        var json = File.ReadAllText(caminho);
-        var opcoes = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        var dados = JsonSerializer.Deserialize<EstoqueSeed>(json, opcoes);
-
-        if (dados?.Estoque is null || dados.Estoque.Count == 0)
+        var movimentacao = new MovimentacaoEstoqueEntity
         {
-            throw new InvalidDataException("O arquivo de estoque inicial não contém produtos.");
-        }
+            CodigoProduto = produto.CodigoProduto,
+            DescricaoProduto = produto.DescricaoProduto,
+            Tipo = request.Tipo,
+            Quantidade = request.Quantidade,
+            Descricao = request.Descricao!.Trim(),
+            EstoqueAnterior = produto.Estoque,
+            EstoqueFinal = estoqueFinal,
+            RealizadaEm = relogio.GetUtcNow()
+        };
 
-        if (dados.Estoque.Any(produto =>
-                produto.CodigoProduto <= 0 ||
-                string.IsNullOrWhiteSpace(produto.DescricaoProduto) ||
-                produto.Estoque < 0))
-        {
-            throw new InvalidDataException("O arquivo de estoque inicial contém um produto inválido.");
-        }
+        produto.Estoque = estoqueFinal;
+        contexto.Movimentacoes.Add(movimentacao);
+        await contexto.SaveChangesAsync(cancellationToken);
+        if (transacao is not null)
+            await transacao.CommitAsync(cancellationToken);
 
-        if (dados.Estoque.Select(produto => produto.CodigoProduto).Distinct().Count() != dados.Estoque.Count)
-        {
-            throw new InvalidDataException("O arquivo de estoque inicial contém códigos duplicados.");
-        }
-
-        return new EstoqueService(dados.Estoque, relogio);
+        return new ResultadoMovimentacao(StatusMovimentacao.Sucesso, ParaModelo(movimentacao), null);
     }
 
-    public IReadOnlyList<ProdutoEstoque> ListarProdutos()
-    {
-        lock (_controleConcorrencia)
-        {
-            return _produtos.Values
-                .OrderBy(produto => produto.CodigoProduto)
-                .ToArray();
-        }
-    }
-
-    public ProdutoEstoque? ObterProduto(int codigoProduto)
-    {
-        lock (_controleConcorrencia)
-        {
-            return _produtos.GetValueOrDefault(codigoProduto);
-        }
-    }
-
-    public IReadOnlyList<MovimentacaoEstoque> ListarMovimentacoes()
-    {
-        lock (_controleConcorrencia)
-        {
-            return _movimentacoes.ToArray();
-        }
-    }
-
-    public MovimentacaoEstoque? ObterMovimentacao(Guid id)
-    {
-        lock (_controleConcorrencia)
-        {
-            return _movimentacoes.FirstOrDefault(movimentacao => movimentacao.Id == id);
-        }
-    }
-
-    public ResultadoMovimentacao Movimentar(MovimentacaoEstoqueRequest request)
-    {
-        lock (_controleConcorrencia)
-        {
-            if (!_produtos.TryGetValue(request.CodigoProduto, out var produto))
-            {
-                return new ResultadoMovimentacao(
-                    StatusMovimentacao.ProdutoNaoEncontrado,
-                    null,
-                    $"Produto de código {request.CodigoProduto} não encontrado.");
-            }
-
-            if (request.Tipo == TipoMovimentacao.Saida && request.Quantidade > produto.Estoque)
-            {
-                return new ResultadoMovimentacao(
-                    StatusMovimentacao.EstoqueInsuficiente,
-                    null,
-                    $"Estoque insuficiente. Saldo atual: {produto.Estoque}.");
-            }
-
-            int estoqueFinal;
-
-            try
-            {
-                estoqueFinal = request.Tipo == TipoMovimentacao.Entrada
-                    ? checked(produto.Estoque + request.Quantidade)
-                    : produto.Estoque - request.Quantidade;
-            }
-            catch (OverflowException)
-            {
-                return new ResultadoMovimentacao(
-                    StatusMovimentacao.LimiteDeEstoqueExcedido,
-                    null,
-                    "A quantidade informada excede o limite suportado para o estoque.");
-            }
-
-            var produtoAtualizado = produto with { Estoque = estoqueFinal };
-            var movimentacao = new MovimentacaoEstoque(
-                Guid.NewGuid(),
-                produto.CodigoProduto,
-                produto.DescricaoProduto,
-                request.Tipo,
-                request.Quantidade,
-                request.Descricao!.Trim(),
-                produto.Estoque,
-                estoqueFinal,
-                _relogio.GetUtcNow());
-
-            _produtos[produto.CodigoProduto] = produtoAtualizado;
-            _movimentacoes.Add(movimentacao);
-
-            return new ResultadoMovimentacao(StatusMovimentacao.Sucesso, movimentacao, null);
-        }
-    }
+    private static MovimentacaoEstoque ParaModelo(MovimentacaoEstoqueEntity movimentacao) => new(
+        movimentacao.Id, movimentacao.CodigoProduto, movimentacao.DescricaoProduto, movimentacao.Tipo,
+        movimentacao.Quantidade, movimentacao.Descricao, movimentacao.EstoqueAnterior,
+        movimentacao.EstoqueFinal, movimentacao.RealizadaEm);
 }

@@ -5,16 +5,20 @@ API REST em ASP.NET Core que resolve os três exercícios propostos: comissão d
 ## Tecnologias
 
 - .NET 8 e ASP.NET Core Minimal APIs
-- `System.Text.Json` para leitura e escrita dos JSONs
+- Entity Framework Core e SQL Server para persistência do estoque
+- `System.Text.Json` para leitura do arquivo de vendas e da carga inicial de produtos
 - xUnit para testes automatizados
 
-O projeto não exige serviços externos para executar. O estoque inicial é lido de `Data/estoque.json` e mantido em memória durante a execução da API.
+O estoque é persistido no SQL Server. Na primeira execução, a API aplica as migrations e inclui no banco os produtos de `Data/estoque.json`.
 
 ## Como executar
 
-É necessário ter o SDK do .NET 8 instalado. Dentro da pasta `backend`, execute:
+É necessário ter o SDK do .NET 8 e o SQL Server em execução. O container local está configurado em `C:\projetos\sqlserver-desafio-target` e pode ser iniciado com `docker compose up -d` nessa pasta.
+
+Dentro da pasta `backend`, configure a conexão com a senha definida no arquivo `.env` do container e inicie a API:
 
 ```powershell
+$env:ConnectionStrings__SqlServer = "Server=localhost,1433;Database=DesafioTarget;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True"
 dotnet restore
 dotnet run --project src/DesafioTarget.Api
 ```
@@ -35,7 +39,7 @@ dotnet test
 | `GET` | `/api/produtos` | Lista os produtos e seus saldos atuais |
 | `GET` | `/api/produtos/{codigoProduto}` | Consulta um produto |
 | `POST` | `/api/movimentacoes` | Registra uma entrada ou saída de estoque |
-| `GET` | `/api/movimentacoes` | Lista as movimentações desta execução |
+| `GET` | `/api/movimentacoes` | Lista as movimentações persistidas |
 | `GET` | `/api/movimentacoes/{id}` | Consulta uma movimentação pelo identificador |
 | `POST` | `/api/juros/calcular` | Calcula juros simples até a data atual |
 
@@ -80,9 +84,9 @@ Exemplo de entrada:
 }
 ```
 
-O campo `tipo` aceita `entrada` ou `saida`. O identificador é um `Guid` gerado pela API. A resposta informa o saldo anterior e o saldo final. Uma saída maior que o saldo retorna HTTP `409 Conflict` e não altera o produto.
+O campo `tipo` aceita `entrada` ou `saida`. O identificador é numérico e gerado pelo SQL Server. A resposta informa o saldo anterior e o saldo final. Uma saída maior que o saldo retorna HTTP `409 Conflict` e não altera o produto.
 
-As alterações e o histórico ficam em memória e são protegidos contra atualizações simultâneas. Ao reiniciar a aplicação, os produtos voltam aos valores do arquivo JSON. A interface `IEstoqueService` mantém essa regra separada dos endpoints e permite trocar o armazenamento por SQL Server posteriormente.
+As alterações e o histórico permanecem no banco após reiniciar a API. A operação usa transação serializável para manter o saldo e o histórico consistentes durante movimentações simultâneas.
 
 ### Juros
 

@@ -20,7 +20,7 @@ public sealed record MovimentacaoEstoqueRequest(
     string? Descricao);
 
 public sealed record MovimentacaoEstoque(
-    Guid Id,
+    long Id,
     int CodigoProduto,
     string DescricaoProduto,
     TipoMovimentacao Tipo,

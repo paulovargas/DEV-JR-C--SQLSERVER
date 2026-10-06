@@ -9,10 +9,14 @@ Solução full stack para os três exercícios do desafio técnico.
 
 Abra dois terminais na raiz deste repositório.
 
-No primeiro, inicie a API:
+No primeiro, inicie o SQL Server local e a API:
 
 ```powershell
+cd C:\projetos\sqlserver-desafio-target
+docker compose up -d
+
 cd backend
+$env:ConnectionStrings__SqlServer = "Server=localhost,1433;Database=DesafioTarget;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True"
 dotnet run --project src/DesafioTarget.Api
 ```
 

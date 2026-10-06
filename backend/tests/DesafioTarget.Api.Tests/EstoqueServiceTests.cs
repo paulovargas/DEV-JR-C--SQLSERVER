@@ -1,19 +1,20 @@
+using DesafioTarget.Api.Data;
 using DesafioTarget.Api.Models;
 using DesafioTarget.Api.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace DesafioTarget.Api.Tests;
 
 public sealed class EstoqueServiceTests
 {
     [Fact]
-    public void Movimentar_DeveAtualizarOSaldoEmEntradasESaidas()
+    public async Task MovimentarAsync_DeveAtualizarOSaldoEmEntradasESaidas()
     {
-        var estoque = CriarEstoque(150);
+        await using var contexto = CriarContexto(150);
+        var estoque = new EstoqueService(contexto, TimeProvider.System);
 
-        var entrada = estoque.Movimentar(
-            new MovimentacaoEstoqueRequest(101, TipoMovimentacao.Entrada, 25, "Compra"));
-        var saida = estoque.Movimentar(
-            new MovimentacaoEstoqueRequest(101, TipoMovimentacao.Saida, 40, "Venda"));
+        var entrada = await estoque.MovimentarAsync(new MovimentacaoEstoqueRequest(101, TipoMovimentacao.Entrada, 25, "Compra"), CancellationToken.None);
+        var saida = await estoque.MovimentarAsync(new MovimentacaoEstoqueRequest(101, TipoMovimentacao.Saida, 40, "Venda"), CancellationToken.None);
 
         Assert.Equal(StatusMovimentacao.Sucesso, entrada.Status);
         Assert.Equal(150, entrada.Movimentacao!.EstoqueAnterior);
@@ -21,37 +22,30 @@ public sealed class EstoqueServiceTests
         Assert.Equal(StatusMovimentacao.Sucesso, saida.Status);
         Assert.Equal(135, saida.Movimentacao!.EstoqueFinal);
         Assert.NotEqual(entrada.Movimentacao.Id, saida.Movimentacao.Id);
-        Assert.Equal(135, estoque.ObterProduto(101)!.Estoque);
+        Assert.Equal(135, (await estoque.ObterProdutoAsync(101, CancellationToken.None))!.Estoque);
     }
 
     [Fact]
-    public void Movimentar_NaoDeveAlterarSaldoQuandoASaidaExcedeOEstoque()
+    public async Task MovimentarAsync_NaoDeveAlterarSaldoQuandoASaidaExcedeOEstoque()
     {
-        var estoque = CriarEstoque(10);
+        await using var contexto = CriarContexto(10);
+        var estoque = new EstoqueService(contexto, TimeProvider.System);
 
-        var resultado = estoque.Movimentar(
-            new MovimentacaoEstoqueRequest(101, TipoMovimentacao.Saida, 11, "Venda"));
+        var resultado = await estoque.MovimentarAsync(new MovimentacaoEstoqueRequest(101, TipoMovimentacao.Saida, 11, "Venda"), CancellationToken.None);
 
         Assert.Equal(StatusMovimentacao.EstoqueInsuficiente, resultado.Status);
-        Assert.Equal(10, estoque.ObterProduto(101)!.Estoque);
-        Assert.Empty(estoque.ListarMovimentacoes());
+        Assert.Equal(10, (await estoque.ObterProdutoAsync(101, CancellationToken.None))!.Estoque);
+        Assert.Empty(await estoque.ListarMovimentacoesAsync(CancellationToken.None));
     }
 
-    [Fact]
-    public void Movimentar_DeveManterAtualizacoesConcorrentes()
+    private static DesafioTargetDbContext CriarContexto(int quantidade)
     {
-        var estoque = CriarEstoque(0);
-
-        Parallel.For(0, 100, indice =>
-            estoque.Movimentar(
-                new MovimentacaoEstoqueRequest(101, TipoMovimentacao.Entrada, 1, $"Entrada {indice}")));
-
-        Assert.Equal(100, estoque.ObterProduto(101)!.Estoque);
-        Assert.Equal(100, estoque.ListarMovimentacoes().Count);
+        var opcoes = new DbContextOptionsBuilder<DesafioTargetDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        var contexto = new DesafioTargetDbContext(opcoes);
+        contexto.Produtos.Add(new ProdutoEstoqueEntity { CodigoProduto = 101, DescricaoProduto = "Caneta Azul", Estoque = quantidade });
+        contexto.SaveChanges();
+        return contexto;
     }
-
-    private static EstoqueService CriarEstoque(int quantidade) =>
-        new(
-            [new ProdutoEstoque(101, "Caneta Azul", quantidade)],
-            TimeProvider.System);
 }

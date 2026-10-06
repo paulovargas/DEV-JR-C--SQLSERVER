@@ -1,7 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DesafioTarget.Api.Data;
 using DesafioTarget.Api.Models;
 using DesafioTarget.Api.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,14 +17,13 @@ builder.Services.ConfigureHttpJsonOptions(opcoes =>
 builder.Services.AddSingleton<ICalculadoraComissao, CalculadoraComissao>();
 builder.Services.AddSingleton<ICalculadoraJuros, CalculadoraJuros>();
 builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
-builder.Services.AddSingleton<IEstoqueService>(provedor =>
-{
-    var relogio = provedor.GetRequiredService<TimeProvider>();
-    var caminhoEstoque = Path.Combine(AppContext.BaseDirectory, "Data", "estoque.json");
-    return EstoqueService.CarregarDeArquivo(caminhoEstoque, relogio);
-});
+var connectionString = builder.Configuration.GetConnectionString("SqlServer")
+    ?? throw new InvalidOperationException("A string de conexão SqlServer não foi configurada.");
+builder.Services.AddDbContext<DesafioTargetDbContext>(opcoes => opcoes.UseSqlServer(connectionString));
+builder.Services.AddScoped<IEstoqueService, EstoqueService>();
 
 var app = builder.Build();
+await BancoDadosInicializador.InicializarAsync(app.Services);
 
 app.MapGet("/", () => Results.Ok(new
 {
@@ -57,12 +58,12 @@ comissoes.MapPost("/calcular", (
 
 var produtos = app.MapGroup("/api/produtos");
 
-produtos.MapGet("/", (IEstoqueService estoque) =>
-    Results.Ok(estoque.ListarProdutos()));
+produtos.MapGet("/", async (IEstoqueService estoque, CancellationToken cancellationToken) =>
+    Results.Ok(await estoque.ListarProdutosAsync(cancellationToken)));
 
-produtos.MapGet("/{codigoProduto:int}", (int codigoProduto, IEstoqueService estoque) =>
+produtos.MapGet("/{codigoProduto:int}", async (int codigoProduto, IEstoqueService estoque, CancellationToken cancellationToken) =>
 {
-    var produto = estoque.ObterProduto(codigoProduto);
+    var produto = await estoque.ObterProdutoAsync(codigoProduto, cancellationToken);
     return produto is null
         ? Results.NotFound(new { erro = $"Produto de código {codigoProduto} não encontrado." })
         : Results.Ok(produto);
@@ -70,18 +71,18 @@ produtos.MapGet("/{codigoProduto:int}", (int codigoProduto, IEstoqueService esto
 
 var movimentacoes = app.MapGroup("/api/movimentacoes");
 
-movimentacoes.MapGet("/", (IEstoqueService estoque) =>
-    Results.Ok(estoque.ListarMovimentacoes()));
+movimentacoes.MapGet("/", async (IEstoqueService estoque, CancellationToken cancellationToken) =>
+    Results.Ok(await estoque.ListarMovimentacoesAsync(cancellationToken)));
 
-movimentacoes.MapGet("/{id:guid}", (Guid id, IEstoqueService estoque) =>
+movimentacoes.MapGet("/{id:long}", async (long id, IEstoqueService estoque, CancellationToken cancellationToken) =>
 {
-    var movimentacao = estoque.ObterMovimentacao(id);
+    var movimentacao = await estoque.ObterMovimentacaoAsync(id, cancellationToken);
     return movimentacao is null
         ? Results.NotFound(new { erro = $"Movimentação {id} não encontrada." })
         : Results.Ok(movimentacao);
 });
 
-movimentacoes.MapPost("/", (MovimentacaoEstoqueRequest request, IEstoqueService estoque) =>
+movimentacoes.MapPost("/", async (MovimentacaoEstoqueRequest request, IEstoqueService estoque, CancellationToken cancellationToken) =>
 {
     var erros = ValidarMovimentacao(request);
 
@@ -90,7 +91,7 @@ movimentacoes.MapPost("/", (MovimentacaoEstoqueRequest request, IEstoqueService 
         return Results.ValidationProblem(erros);
     }
 
-    var resultado = estoque.Movimentar(request);
+    var resultado = await estoque.MovimentarAsync(request, cancellationToken);
 
     return resultado.Status switch
     {

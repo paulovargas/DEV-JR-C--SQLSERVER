@@ -35,7 +35,7 @@ export interface MovimentacaoEstoqueRequest {
 }
 
 export interface MovimentacaoEstoque {
-  id: string;
+  id: number;
   codigoProduto: number;
   descricaoProduto: string;
   tipo: TipoMovimentacao;
