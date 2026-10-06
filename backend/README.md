@@ -9,7 +9,7 @@ API REST em ASP.NET Core que resolve os três exercícios propostos: comissão d
 - `System.Text.Json` para leitura do arquivo de vendas e da carga inicial de produtos
 - xUnit para testes automatizados
 
-O estoque é persistido no SQL Server. Na primeira execução, a API aplica as migrations e inclui no banco os produtos de `Data/estoque.json`.
+O estoque é persistido no SQL Server. Ao iniciar, a API aplica as migrations pendentes e inclui os produtos de `Data/estoque.json` quando a tabela de produtos está vazia.
 
 ## Organização do código
 
@@ -24,30 +24,49 @@ O estoque é persistido no SQL Server. Na primeira execução, a API aplica as m
 
 ## Como executar
 
-É necessário ter o SDK do .NET 8 e o SQL Server em execução. O container local está configurado em `C:\projetos\sqlserver-desafio-target` e pode ser iniciado com `docker compose up -d` nessa pasta.
+É necessário ter um SDK compatível com [`global.json`](global.json): `8.0.100` ou um patch da família `8.0.1xx`, além de SQL Server acessível. A configuração portátil de um container e a alternativa com Compose externo estão no [README raiz](../README.md#sql-server-local). Também é possível usar uma instância SQL Server existente, ajustando servidor, porta e credenciais.
 
-Dentro da pasta `backend`, configure a conexão com a senha definida no arquivo `.env` do container e inicie a API:
-
-```powershell
-$env:ConnectionStrings__SqlServer = "Server=localhost,1433;Database=DesafioTarget;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True"
-dotnet restore
-dotnet run --project src/DesafioTarget.Api
-```
-
-A API ficará disponível em `http://localhost:5080`. O arquivo [`DesafioTarget.Api.http`](src/DesafioTarget.Api/DesafioTarget.Api.http) contém exemplos prontos para todos os endpoints.
-
-Para executar os testes:
+Em um terminal na raiz do repositório, entre em `backend`, configure a conexão e inicie a API:
 
 ```powershell
-dotnet test
+cd backend
+$env:ConnectionStrings__SqlServer = 'Server=localhost,1433;Database=DesafioTarget;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True'
+dotnet restore DesafioTarget.sln
+dotnet run --project src/DesafioTarget.Api/DesafioTarget.Api.csproj
 ```
 
-Os testes unitários e HTTP em `tests/DesafioTarget.Api.Tests` usam EF InMemory e não dependem de SQL Server. Os testes relacionais de `tests/DesafioTarget.Api.IntegrationTests` são ignorados quando `DESAFIO_TARGET_SQLSERVER_TEST_CONNECTION` não está configurada.
+Substitua `SUA_SENHA` pela senha configurada na instância e aguarde o SQL Server aceitar conexões. A conexão deve permitir criar o banco, aplicar migrations e ler e gravar os dados. `appsettings.json` mantém a conexão vazia; a variável vale somente para o terminal atual e deve ser configurada novamente em outro terminal. `TrustServerCertificate=True` é utilizado neste exemplo local; não versione credenciais reais.
+
+A API ficará disponível em `http://localhost:5080`, conforme o perfil de execução. O arquivo [`DesafioTarget.Api.http`](src/DesafioTarget.Api/DesafioTarget.Api.http) contém exemplos para todos os endpoints, incluindo validações. Os exemplos válidos de entrada e saída persistem alterações no banco; execute uma requisição por vez, conforme as pré-condições descritas no arquivo.
+
+## Testes
+
+Todos os comandos desta seção partem da pasta `backend`. Os testes não precisam de uma API em execução.
+
+| Tipo | Projeto | Pré-requisitos e cobertura |
+|---|---|---|
+| Unitários e chamadas diretas | `tests/DesafioTarget.Api.Tests` | SDK e pacotes restaurados; calculadoras e validações. O serviço de estoque usa EF InMemory. |
+| HTTP em memória | `tests/DesafioTarget.Api.Tests` | SDK e pacotes restaurados; host de testes com EF InMemory, rotas, JSON, códigos HTTP e erros. Não depende de SQL Server. |
+| Integração SQL Server | `tests/DesafioTarget.Api.IntegrationTests` | SQL Server ativo e `DESAFIO_TARGET_SQLSERVER_TEST_CONNECTION` configurada; migrations, persistência, transações e concorrência reais. |
+
+Para executar apenas os testes rápidos (unitários, diretos e HTTP):
+
+```powershell
+dotnet test tests/DesafioTarget.Api.Tests/DesafioTarget.Api.Tests.csproj
+```
+
+Para executar toda a solução:
+
+```powershell
+dotnet test DesafioTarget.sln
+```
+
+Sem a variável de conexão dos testes, os cenários SQL são marcados como ignorados; esse resultado não comprova transações ou concorrência no SQL Server. O banco InMemory é isolado por teste/host e não reproduz o comportamento relacional.
 
 Para executar os testes de integração, mantenha o SQL Server ativo e configure uma conexão com permissão para criar e remover bancos. Na pasta `backend`:
 
 ```powershell
-$env:DESAFIO_TARGET_SQLSERVER_TEST_CONNECTION = "Server=localhost,1433;Database=master;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True"
+$env:DESAFIO_TARGET_SQLSERVER_TEST_CONNECTION = 'Server=localhost,1433;Database=master;User Id=sa;Password=SUA_SENHA;TrustServerCertificate=True'
 dotnet test tests/DesafioTarget.Api.IntegrationTests/DesafioTarget.Api.IntegrationTests.csproj
 ```
 
@@ -55,10 +74,19 @@ Cada cenário gera um banco com o nome `DesafioTarget_IntegrationTests_` seguido
 
 Os cenários verificam persistência conjunta de saldo e histórico, rollback de gravações anteriores ao commit, falha SQL inesperada, saídas concorrentes e deadlocks reais. Uma barreira assíncrona sincroniza duas transações após a leitura do saldo; o teste confirma o erro SQL `1205` e verifica os dados persistidos em outro contexto, sem depender de qual operação foi escolhida como vítima.
 
+Para voltar a executar a solução sem os testes SQL nesse terminal:
+
+```powershell
+Remove-Item Env:DESAFIO_TARGET_SQLSERVER_TEST_CONNECTION -ErrorAction SilentlyContinue
+```
+
+Após restaurar e compilar, `--no-restore` evita repetir o restore; `--no-build` também dispensa a compilação e deve ser usado somente quando o código compilado estiver atualizado.
+
 ## Endpoints
 
 | Método | Rota | Descrição |
 |---|---|---|
+| `GET` | `/` | Informa o nome da aplicação e as rotas funcionais |
 | `POST` | `/api/comissoes/calcular` | Calcula e agrupa as comissões por vendedor |
 | `GET` | `/api/produtos` | Lista os produtos e seus saldos atuais |
 | `GET` | `/api/produtos/{codigoProduto}` | Consulta um produto |
@@ -66,6 +94,10 @@ Os cenários verificam persistência conjunta de saldo e histórico, rollback de
 | `GET` | `/api/movimentacoes` | Lista as movimentações persistidas |
 | `GET` | `/api/movimentacoes/{id}` | Consulta uma movimentação pelo identificador |
 | `POST` | `/api/juros/calcular` | Calcula juros simples até a data atual |
+
+## Contratos da API
+
+Envie os corpos de requisição como `application/json`. As respostas de sucesso usam `application/json`, propriedades em camelCase e enums como texto. Erros usam o contrato descrito em [Validações e respostas HTTP](#validações-e-respostas-http).
 
 ### Comissões
 
@@ -79,6 +111,8 @@ O corpo segue o mesmo formato do enunciado:
   ]
 }
 ```
+
+A lista `vendas` é obrigatória, não pode ser vazia nem conter itens nulos. Cada vendedor deve conter texto; espaços externos são removidos no agrupamento, que ignora diferenças entre maiúsculas e minúsculas. Cada valor deve ser positivo e respeitar os limites monetários individuais e da soma.
 
 As faixas são aplicadas individualmente a cada venda:
 
@@ -95,6 +129,8 @@ Os cálculos usam `decimal`. Comissões e juros compartilham a política `Arredo
 | Carlos Oliveira | R$ 379,37 |
 | Ana Lima | R$ 404,98 |
 
+A resposta contém `vendedores` (vendedor, quantidade de vendas, total vendido e comissão) e `comissaoTotalGeral`; o total do arquivo do desafio é R$ 1.745,98.
+
 ### Estoque
 
 Exemplo de entrada:
@@ -108,7 +144,9 @@ Exemplo de entrada:
 }
 ```
 
-O campo `tipo` é obrigatório e aceita `entrada` ou `saida`. Valores ausentes, nulos, desconhecidos ou numéricos retornam HTTP `400 Bad Request`, sem alterar saldo ou histórico. O identificador é numérico e gerado pelo SQL Server. A resposta informa o saldo anterior e o saldo final. Uma saída maior que o saldo retorna HTTP `409 Conflict` e não altera o produto.
+O campo `tipo` é obrigatório e aceita `entrada` ou `saida`. Valores ausentes, nulos, desconhecidos ou numéricos retornam HTTP `400 Bad Request`, sem alterar saldo ou histórico. Código e quantidade devem ser inteiros positivos, representáveis em `int` (máximo `2147483647`). O identificador da movimentação é gerado pelo SQL Server e representado como `long`.
+
+Uma criação retorna `201 Created`, cabeçalho `Location: /api/movimentacoes/{id}` e JSON com identificador, produto, tipo, quantidade, descrição, saldo anterior, saldo final e `realizadaEm` em UTC. Uma saída maior que o saldo retorna `409 Conflict` e não altera o produto. Uma entrada que ultrapasse o saldo máximo de `2147483647` retorna `400` com `detail`, sem erros por campo. Não há endpoint para desfazer uma movimentação.
 
 As alterações e o histórico permanecem no banco após reiniciar a API. A operação usa transação serializável para manter o saldo e o histórico consistentes durante movimentações simultâneas.
 
@@ -133,7 +171,7 @@ Como o enunciado não define capitalização, foi adotado juro simples diário:
 juros = valor × 0,025 × dias de atraso
 ```
 
-A data de cálculo é a data local do servidor. Vencimentos no dia atual ou no futuro retornam zero dia de atraso e zero de juros. Os valores monetários da resposta são arredondados para duas casas decimais.
+A data de vencimento é obrigatória no formato `yyyy-MM-dd`; a data padrão `0001-01-01` é rejeitada. O request aceita valor positivo e data de vencimento; a data de cálculo é definida pela data local do servidor. Vencimentos no dia atual ou no futuro retornam zero dia de atraso e zero de juros. A resposta contém valor original, vencimento, data de cálculo, dias de atraso, taxa diária percentual (`2.5`), juros e valor atualizado. Os valores monetários da resposta são arredondados para duas casas decimais.
 
 ### Limites dos cálculos monetários
 
@@ -147,13 +185,30 @@ As calculadoras aplicam essas validações também em chamadas diretas e sinaliz
 
 ## Validações e respostas HTTP
 
-- Campos ausentes, valores não positivos e descrições vazias retornam `400 Bad Request`.
+- Campos obrigatórios ausentes, valores não positivos, descrições vazias ou acima de 500 caracteres normalizados e cálculos acima dos limites retornam `400 Bad Request`.
 - No cálculo de comissões, listas ausentes, nulas ou vazias e itens nulos também retornam `400 Bad Request`. Os erros de cada venda indicam seu índice na lista.
 - Produto ou movimentação inexistente retorna `404 Not Found`.
-- Saída sem saldo suficiente retorna `409 Conflict`.
+- Saída sem saldo suficiente ou deadlock de concorrência retorna `409 Conflict`.
 - Uma movimentação criada retorna `201 Created` com a URL para consulta no cabeçalho `Location`.
+- Método não permitido retorna `405`; corpo com tipo de conteúdo não suportado retorna `415`.
 
-Os erros HTTP da API usam `application/problem+json`, com `type`, `title`, `status`, `detail`, `instance` e `traceId`. Os erros de validação também incluem `errors`, um objeto com mensagens por campo. `instance` informa somente o caminho, sem incluir parâmetros de consulta.
+Os erros HTTP da API usam `application/problem+json`, com `type`, `title`, `status`, `detail`, `instance` e `traceId`. As validações das regras incluem `errors`, um objeto de arrays de mensagens por campo. Os índices das vendas começam em zero. `instance` informa somente o caminho, sem incluir parâmetros de consulta. Erros de binding do JSON e overflow do saldo retornam `400` seguro com `detail`, sem exigir `errors`.
+
+Exemplo de lista de vendas vazia:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "Dados inválidos.",
+  "status": 400,
+  "detail": "Corrija os campos indicados e tente novamente.",
+  "instance": "/api/comissoes/calcular",
+  "traceId": "identificador-da-requisicao",
+  "errors": {
+    "vendas": ["A lista de vendas deve conter pelo menos uma venda."]
+  }
+}
+```
 
 Exemplo de conflito por estoque insuficiente:
 
@@ -170,16 +225,6 @@ Exemplo de conflito por estoque insuficiente:
 
 Falhas inesperadas retornam `500` com mensagem genérica, inclusive em desenvolvimento. A resposta não inclui stack trace, SQL ou detalhes internos. O servidor registra a exceção com método, caminho e o mesmo `traceId` da resposta para permitir investigação. JSON inválido, corpo ausente e erros de desserialização são tratados como falhas de requisição com mensagem segura; rotas inexistentes e métodos não permitidos também recebem o contrato padronizado.
 
-Os testes cobrem os limites de R$ 100,00 e R$ 500,00, os totais do JSON fornecido, agrupamento de vendedores, entrada e saída, saldo insuficiente e cálculo de juros com e sem atraso.
+Os testes rápidos cobrem faixas de comissão, agrupamento e totais do arquivo, arredondamento de meio centavo, limites monetários individuais e agregados, dados inválidos, estoque insuficiente e overflow. Os testes HTTP conferem os contratos de erro e o logging com `traceId`, inclusive falhas simuladas em desenvolvimento e produção.
 
-Os testes HTTP de comissões verificam validações, mensagens por campo e os totais do JSON do desafio. Utilizam a API hospedada em memória e EF InMemory, sem precisar de SQL Server; não verificam o comportamento relacional do estoque.
-
-Os testes HTTP de movimentações verificam a rejeição de tipos inválidos sem alteração do saldo ou histórico e a persistência de entradas e saídas válidas. Cada instância da API de teste usa um banco InMemory isolado.
-
-Os testes diretos do serviço também cobrem dados inválidos, produto inexistente, saída igual ao saldo, overflow e os limites de estoque e descrição. Os testes HTTP verificam a tradução dos erros do serviço para validação por campo.
-
-Os testes de cálculos monetários verificam os limites individuais e agregados, chamadas diretas inválidas e períodos de atraso que excedem a capacidade do cálculo, além das respostas HTTP de validação.
-
-Os testes também verificam arredondamento de meio centavo em comissões e juros, soma das comissões antes do arredondamento e consultas de produtos com campos, ordenação e filtro por código preservados. A listagem e a consulta de produtos reutilizam uma expressão de projeção executada pelo EF Core no banco, antes da materialização dos resultados.
-
-Os testes de erros verificam contratos `400`, `404`, `409` e `500`, metadados e ausência de detalhes internos em desenvolvimento e produção. Uma falha de gravação simulada com `SaveChangesInterceptor` confirma a resposta genérica, o logging com `traceId` e a preservação dos dados no InMemory. A garantia transacional é verificada separadamente no SQL Server: uma falha provocada após o saldo e o histórico serem gravados, mas antes do commit, deve desfazer ambas as gravações; outro cenário provoca uma violação de constraint somente no banco exclusivo, confirma o código SQL `547`, a resposta segura e o rollback.
+A garantia transacional é verificada separadamente no SQL Server: uma falha provocada após saldo e histórico serem gravados, mas antes do commit, deve desfazer ambas as gravações. Outro cenário provoca uma violação de constraint somente no banco exclusivo e confirma SQL `547`, resposta `500` segura e rollback. Os testes de concorrência verificam saldo e histórico finais e tratamento controlado dos deadlocks.

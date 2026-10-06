@@ -1,61 +1,199 @@
+# Execute uma requisição por vez em um cliente HTTP compatível com este arquivo.
+# Em outro cliente, substitua as variáveis e copie o método, URL, cabeçalhos e JSON.
 @host = http://localhost:5080
+@codigoProduto = 101
+@codigoProdutoInexistente = 2147483647
+# Copie um id retornado pelo POST ou pelo GET /api/movimentacoes.
+@idMovimentacao = 1
 
-### Informações da API
+# Sucesso: application/json. Erros: application/problem+json, com type, title,
+# status, detail, instance e traceId. Erros de validação também incluem errors.
+# Pré-condições: produto 101 existente; código 2147483647 inexistente.
+
+### Informações da API — 200
 GET {{host}}/
 Accept: application/json
 
-### Calcula as comissões usando o JSON completo do desafio
+### Comissões com valores simples — 200; comissaoTotalGeral 75
 POST {{host}}/api/comissoes/calcular
 Content-Type: application/json
+Accept: application/json
+
+{
+  "vendas": [
+    { "vendedor": "Maria", "valor": 1000 },
+    { "vendedor": "João", "valor": 500 }
+  ]
+}
+
+### Comissões usando o JSON completo do desafio — 200
+# Se o cliente não aceitar inclusão de arquivo, copie Data/vendas.json no corpo.
+POST {{host}}/api/comissoes/calcular
+Content-Type: application/json
+Accept: application/json
 
 < ./Data/vendas.json
 
-### Lista o estoque atual
+### Lista o estoque atual — 200
 GET {{host}}/api/produtos
 Accept: application/json
 
-### Consulta um produto
-GET {{host}}/api/produtos/101
+### Consulta um produto existente — 200
+GET {{host}}/api/produtos/{{codigoProduto}}
 Accept: application/json
 
-### Registra uma entrada
+### Consulta um produto inexistente — 404, application/problem+json
+GET {{host}}/api/produtos/{{codigoProdutoInexistente}}
+Accept: application/problem+json
+
+### Registra uma entrada — 201, application/json, cabeçalho Location
+# ALTERA O BANCO: acrescenta 25 unidades ao saldo e grava o histórico.
+# Execute quando desejar persistir a movimentação; não há operação de desfazer na API.
 POST {{host}}/api/movimentacoes
 Content-Type: application/json
+Accept: application/json
 
 {
-  "codigoProduto": 101,
+  "codigoProduto": {{codigoProduto}},
   "tipo": "entrada",
   "quantidade": 25,
   "descricao": "Compra do fornecedor"
 }
 
-### Registra uma saída
+### Registra uma saída — 201, se houver pelo menos 10 unidades em estoque
+# ALTERA O BANCO: retira 10 unidades do saldo e grava o histórico.
 POST {{host}}/api/movimentacoes
 Content-Type: application/json
+Accept: application/json
 
 {
-  "codigoProduto": 101,
+  "codigoProduto": {{codigoProduto}},
   "tipo": "saida",
   "quantidade": 10,
   "descricao": "Venda do pedido 123"
 }
 
-### Lista o histórico de movimentações persistidas
+### Lista o histórico de movimentações persistidas — 200
 GET {{host}}/api/movimentacoes
 Accept: application/json
 
-### Calcula os juros até a data atual
+### Consulta uma movimentação — 200 se o id existir; caso contrário, 404
+# Atualize idMovimentacao com um id retornado pelo histórico ou pelo POST.
+GET {{host}}/api/movimentacoes/{{idMovimentacao}}
+Accept: application/json, application/problem+json
+
+### Consulta uma movimentação inexistente — 404, application/problem+json
+GET {{host}}/api/movimentacoes/0
+Accept: application/problem+json
+
+### Juros sem atraso — 200; diasAtraso 0, valorJuros 0, valorAtualizado 100
+# A API usa a data local do servidor. O vencimento futuro evita depender do dia da execução.
 POST {{host}}/api/juros/calcular
 Content-Type: application/json
+Accept: application/json
 
 {
   "valor": 100.00,
-  "dataVencimento": "2026-10-01"
+  "dataVencimento": "9999-12-31"
 }
 
-### Rejeita venda acima do limite monetário (HTTP 400)
+### Juros com atraso — 200; taxaDiariaPercentual 2.5
+# Dias e valor final dependem da data local do servidor; não envie dataCalculo.
+POST {{host}}/api/juros/calcular
+Content-Type: application/json
+Accept: application/json
+
+{
+  "valor": 100.00,
+  "dataVencimento": "2000-01-01"
+}
+
+### Rejeita lista de vendas vazia — 400, errors.vendas
 POST {{host}}/api/comissoes/calcular
 Content-Type: application/json
+Accept: application/problem+json
+
+{
+  "vendas": []
+}
+
+### Rejeita item nulo na lista — 400, errors["vendas[0]"]
+POST {{host}}/api/comissoes/calcular
+Content-Type: application/json
+Accept: application/problem+json
+
+{
+  "vendas": [null]
+}
+
+### Rejeita tipo ausente — 400, errors.tipo; não altera o banco
+POST {{host}}/api/movimentacoes
+Content-Type: application/json
+Accept: application/problem+json
+
+{
+  "codigoProduto": {{codigoProduto}},
+  "quantidade": 1,
+  "descricao": "Teste de validação"
+}
+
+### Rejeita enum numérico — 400 no binding do JSON; não altera o banco
+# tipo aceita as strings "entrada" ou "saida"; números não são aceitos.
+POST {{host}}/api/movimentacoes
+Content-Type: application/json
+Accept: application/problem+json
+
+{
+  "codigoProduto": {{codigoProduto}},
+  "tipo": 0,
+  "quantidade": 1,
+  "descricao": "Teste de validação"
+}
+
+### Rejeita quantidade zero e descrição em branco — 400; não altera o banco
+# errors.quantidade e errors.descricao. Descrição: obrigatória, até 500 caracteres após Trim.
+POST {{host}}/api/movimentacoes
+Content-Type: application/json
+Accept: application/problem+json
+
+{
+  "codigoProduto": {{codigoProduto}},
+  "tipo": "entrada",
+  "quantidade": 0,
+  "descricao": "   "
+}
+
+### Rejeita movimentação de produto inexistente — 404; não altera o banco
+POST {{host}}/api/movimentacoes
+Content-Type: application/json
+Accept: application/problem+json
+
+{
+  "codigoProduto": {{codigoProdutoInexistente}},
+  "tipo": "entrada",
+  "quantidade": 1,
+  "descricao": "Teste de produto inexistente"
+}
+
+### Rejeita saída acima do saldo — 409 quando a pré-condição é atendida; não altera o banco
+# ANTES DE EXECUTAR: consulte o produto e confirme que estoque < 2147483647.
+# Com saldo igual a esse limite, esta saída seria válida e persistiria uma movimentação.
+POST {{host}}/api/movimentacoes
+Content-Type: application/json
+Accept: application/problem+json
+
+{
+  "codigoProduto": {{codigoProduto}},
+  "tipo": "saida",
+  "quantidade": 2147483647,
+  "descricao": "Teste de estoque insuficiente"
+}
+
+### Rejeita venda acima do limite monetário — 400, errors["vendas[0].valor"]
+# Limite de valor individual e soma: 792281625142643375935439503.
+POST {{host}}/api/comissoes/calcular
+Content-Type: application/json
+Accept: application/problem+json
 
 {
   "vendas": [
@@ -63,9 +201,10 @@ Content-Type: application/json
   ]
 }
 
-### Rejeita soma de vendas acima do limite (HTTP 400)
+### Rejeita soma de vendas acima do limite monetário — 400, errors.vendas
 POST {{host}}/api/comissoes/calcular
 Content-Type: application/json
+Accept: application/problem+json
 
 {
   "vendas": [
@@ -74,11 +213,26 @@ Content-Type: application/json
   ]
 }
 
-### Rejeita juros cujo resultado excede o limite (HTTP 400)
+### Rejeita valor de juros acima do limite monetário — 400, errors.valor
 POST {{host}}/api/juros/calcular
 Content-Type: application/json
+Accept: application/problem+json
+
+{
+  "valor": 792281625142643375935439504,
+  "dataVencimento": "9999-12-31"
+}
+
+### Rejeita juros cujo resultado excede o limite monetário — 400, errors.valor
+POST {{host}}/api/juros/calcular
+Content-Type: application/json
+Accept: application/problem+json
 
 {
   "valor": 792281625142643375935439503,
   "dataVencimento": "2000-01-01"
 }
+
+# Conflitos de concorrência (deadlock SQL 1205, HTTP 409) e falhas inesperadas (HTTP 500)
+# são verificados pela suíte SQL Server em bancos exclusivos de teste. Não são provocados
+# por uma requisição isolada deste arquivo; veja backend/README.md para executar a suíte.
