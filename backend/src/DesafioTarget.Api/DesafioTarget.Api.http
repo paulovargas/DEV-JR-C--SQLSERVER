@@ -52,3 +52,33 @@ Content-Type: application/json
   "valor": 100.00,
   "dataVencimento": "2026-10-01"
 }
+
+### Rejeita venda acima do limite monetário (HTTP 400)
+POST {{host}}/api/comissoes/calcular
+Content-Type: application/json
+
+{
+  "vendas": [
+    { "vendedor": "Maria", "valor": 792281625142643375935439504 }
+  ]
+}
+
+### Rejeita soma de vendas acima do limite (HTTP 400)
+POST {{host}}/api/comissoes/calcular
+Content-Type: application/json
+
+{
+  "vendas": [
+    { "vendedor": "Maria", "valor": 792281625142643375935439503 },
+    { "vendedor": "João", "valor": 100 }
+  ]
+}
+
+### Rejeita juros cujo resultado excede o limite (HTTP 400)
+POST {{host}}/api/juros/calcular
+Content-Type: application/json
+
+{
+  "valor": 792281625142643375935439503,
+  "dataVencimento": "2000-01-01"
+}

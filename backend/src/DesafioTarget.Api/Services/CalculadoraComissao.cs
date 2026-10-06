@@ -11,9 +11,12 @@ public sealed class CalculadoraComissao : ICalculadoraComissao
 {
     public CalculoComissaoResponse Calcular(IEnumerable<Venda> vendas)
     {
-        ArgumentNullException.ThrowIfNull(vendas);
+        var listaVendas = vendas?.ToArray();
+        var erros = ValidadorVendas.Validar(listaVendas);
+        if (erros.Count > 0)
+            throw new CalculoInvalidoException(erros);
 
-        var vendasCalculadas = vendas.Select(venda => new
+        var vendasCalculadas = listaVendas!.Select(venda => new
         {
             Vendedor = venda.Vendedor!.Trim(),
             venda.Valor,

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 
 namespace DesafioTarget.Api.Tests;
 
@@ -13,6 +14,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.ConfigureLogging(opcoes => opcoes.ClearProviders());
         builder.ConfigureServices(servicos =>
         {
             servicos.RemoveAll<DbContextOptions<DesafioTargetDbContext>>();

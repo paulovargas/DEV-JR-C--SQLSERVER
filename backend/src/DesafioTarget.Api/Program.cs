@@ -46,14 +46,14 @@ comissoes.MapPost("/calcular", (
     CalculoComissaoRequest request,
     ICalculadoraComissao calculadora) =>
 {
-    var erros = ValidarVendas(request.Vendas);
-
-    if (erros.Count > 0)
+    try
     {
-        return Results.ValidationProblem(erros);
+        return Results.Ok(calculadora.Calcular(request.Vendas!));
     }
-
-    return Results.Ok(calculadora.Calcular(request.Vendas!));
+    catch (CalculoInvalidoException erro)
+    {
+        return Results.ValidationProblem(erro.Erros);
+    }
 });
 
 var produtos = app.MapGroup("/api/produtos");
@@ -106,74 +106,17 @@ juros.MapPost("/calcular", (
     ICalculadoraJuros calculadora,
     TimeProvider relogio) =>
 {
-    var erros = ValidarCalculoJuros(request);
-
-    if (erros.Count > 0)
+    try
     {
-        return Results.ValidationProblem(erros);
+        var hoje = DateOnly.FromDateTime(relogio.GetLocalNow().DateTime);
+        return Results.Ok(calculadora.Calcular(request.Valor, request.DataVencimento, hoje));
     }
-
-    var hoje = DateOnly.FromDateTime(relogio.GetLocalNow().DateTime);
-    return Results.Ok(calculadora.Calcular(request.Valor, request.DataVencimento, hoje));
+    catch (CalculoInvalidoException erro)
+    {
+        return Results.ValidationProblem(erro.Erros);
+    }
 });
 
 app.Run();
-
-static Dictionary<string, string[]> ValidarVendas(List<Venda>? vendas)
-{
-    var erros = new Dictionary<string, string[]>();
-
-    if (vendas is null)
-    {
-        erros["vendas"] = ["A lista de vendas é obrigatória."];
-        return erros;
-    }
-
-    if (vendas.Count == 0)
-    {
-        erros["vendas"] = ["A lista de vendas deve conter pelo menos uma venda."];
-        return erros;
-    }
-
-    for (var indice = 0; indice < vendas.Count; indice++)
-    {
-        var venda = vendas[indice];
-
-        if (venda is null)
-        {
-            erros[$"vendas[{indice}]"] = ["A venda não pode ser nula."];
-            continue;
-        }
-
-        if (string.IsNullOrWhiteSpace(venda.Vendedor))
-        {
-            erros[$"vendas[{indice}].vendedor"] = ["O vendedor é obrigatório."];
-        }
-
-        if (venda.Valor <= 0m)
-        {
-            erros[$"vendas[{indice}].valor"] = ["O valor da venda deve ser maior que zero."];
-        }
-    }
-
-    return erros;
-}
-
-static Dictionary<string, string[]> ValidarCalculoJuros(CalculoJurosRequest request)
-{
-    var erros = new Dictionary<string, string[]>();
-
-    if (request.Valor <= 0m)
-    {
-        erros["valor"] = ["O valor deve ser maior que zero."];
-    }
-
-    if (request.DataVencimento == default)
-    {
-        erros["dataVencimento"] = ["A data de vencimento é obrigatória."];
-    }
-
-    return erros;
-}
 
 public partial class Program { }

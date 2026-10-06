@@ -109,6 +109,16 @@ juros = valor × 0,025 × dias de atraso
 
 A data de cálculo é a data local do servidor. Vencimentos no dia atual ou no futuro retornam zero dia de atraso e zero de juros. Os valores monetários da resposta são arredondados para duas casas decimais.
 
+### Limites dos cálculos monetários
+
+O limite técnico é `792281625142643375935439503`, definido em `LimitesMonetarios.ValorMaximo` como a parte inteira de `decimal.MaxValue / 100`. Essa reserva permite representar centavos nos valores retornados.
+
+- Cada valor de venda ou principal de juros deve ser positivo e não ultrapassar esse limite.
+- A soma de todas as vendas de uma requisição, mesmo de vendedores diferentes, deve respeitar o mesmo limite. A validação verifica o saldo disponível do limite antes de somar.
+- Os juros e o valor atualizado, após arredondamento, também devem respeitar o limite. Um principal aceito pode ser rejeitado quando o período de atraso produz um resultado acima do limite.
+
+As calculadoras aplicam essas validações também em chamadas diretas e sinalizam rejeições com `CalculoInvalidoException`, contendo erros por campo. Os endpoints convertem essa exceção em HTTP `400 Bad Request`. Overflow aritmético nos juros é convertido na mesma rejeição, sem expor a exceção interna. As faixas de comissão, os juros simples de 2,5% ao dia e a política de arredondamento permanecem iguais.
+
 ## Validações e respostas HTTP
 
 - Campos ausentes, valores não positivos e descrições vazias retornam `400 Bad Request`.
@@ -124,3 +134,5 @@ Os testes HTTP de comissões verificam validações, mensagens por campo e os to
 Os testes HTTP de movimentações verificam a rejeição de tipos inválidos sem alteração do saldo ou histórico e a persistência de entradas e saídas válidas. Cada instância da API de teste usa um banco InMemory isolado.
 
 Os testes diretos do serviço também cobrem dados inválidos, produto inexistente, saída igual ao saldo, overflow e os limites de estoque e descrição. Os testes HTTP verificam a tradução dos erros do serviço para validação por campo.
+
+Os testes de cálculos monetários verificam os limites individuais e agregados, chamadas diretas inválidas e períodos de atraso que excedem a capacidade do cálculo, além das respostas HTTP de validação.
