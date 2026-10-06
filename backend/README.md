@@ -110,8 +110,11 @@ A data de cálculo é a data local do servidor. Vencimentos no dia atual ou no f
 ## Validações e respostas HTTP
 
 - Campos ausentes, valores não positivos e descrições vazias retornam `400 Bad Request`.
+- No cálculo de comissões, listas ausentes, nulas ou vazias e itens nulos também retornam `400 Bad Request`. Os erros de cada venda indicam seu índice na lista.
 - Produto ou movimentação inexistente retorna `404 Not Found`.
 - Saída sem saldo suficiente retorna `409 Conflict`.
 - Uma movimentação criada retorna `201 Created` com a URL para consulta no cabeçalho `Location`.
 
 Os testes cobrem os limites de R$ 100,00 e R$ 500,00, os totais do JSON fornecido, agrupamento de vendedores, entrada e saída, saldo insuficiente e cálculo de juros com e sem atraso.
+
+Os testes HTTP de comissões verificam validações, mensagens por campo e os totais do JSON do desafio. Utilizam a API hospedada em memória e EF InMemory, sem precisar de SQL Server; não verificam o comportamento relacional do estoque.

@@ -135,9 +135,21 @@ static Dictionary<string, string[]> ValidarVendas(List<Venda>? vendas)
         return erros;
     }
 
+    if (vendas.Count == 0)
+    {
+        erros["vendas"] = ["A lista de vendas deve conter pelo menos uma venda."];
+        return erros;
+    }
+
     for (var indice = 0; indice < vendas.Count; indice++)
     {
         var venda = vendas[indice];
+
+        if (venda is null)
+        {
+            erros[$"vendas[{indice}]"] = ["A venda não pode ser nula."];
+            continue;
+        }
 
         if (string.IsNullOrWhiteSpace(venda.Vendedor))
         {
@@ -195,3 +207,5 @@ static Dictionary<string, string[]> ValidarCalculoJuros(CalculoJurosRequest requ
 
     return erros;
 }
+
+public partial class Program { }

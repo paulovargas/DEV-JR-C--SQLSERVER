@@ -10,7 +10,8 @@ public static class BancoDadosInicializador
     {
         await using var escopo = servicos.CreateAsyncScope();
         var contexto = escopo.ServiceProvider.GetRequiredService<DesafioTargetDbContext>();
-        await contexto.Database.MigrateAsync(cancellationToken);
+        if (contexto.Database.IsRelational())
+            await contexto.Database.MigrateAsync(cancellationToken);
 
         if (await contexto.Produtos.AnyAsync(cancellationToken)) return;
 
